@@ -1,0 +1,4075 @@
+---
+title: "WFP datasets wrangling - Chad : Labels harmonization"
+author: "Aboubacar HEMA"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    code_folding: show
+    keep_md: true
+---
+
+
+
+```{r setup, include=FALSE, results = 'hide'}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+  results = "hide"
+)
+```
+
+
+```{r packages needed}
+library(haven)
+library(labelled) # for general functions to work with labelled data
+library(tidyverse) # general wrangling
+library(dplyr)
+library(Hmisc)
+library(gtsummary) # to demonstrate automatic use of variable labels in summary tables
+library(readxl)
+library(foreign)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled) # for example efc data set with variable labels
+library(stringr)
+```
+
+
+
+```{r remove environment variables}
+
+rm(list = ls())
+```
+
+```{r environment settings}
+
+dir_input_data = "C:/Users/AHema/OneDrive - CGIAR/Desktop/WFP Resilience dataset/data/output_data/Chad"
+dir_output_data = "C:/Users/AHema/OneDrive - CGIAR/Desktop/WFP Resilience dataset/data/output_data/Common labels data/Chad"
+
+```
+
+```{r read harmonization excel file}
+
+Chad_Harmonization_variables <- read_excel(paste0(dir_input_data,"/Chad_Harmonization.xlsx"), 
+    sheet = "variables_harmonization")
+#View(Chad_Harmonization_variables)
+
+Chad_Harmonization_description <- read_excel(paste0(dir_input_data,"/Chad_Harmonization.xlsx"), 
+    sheet = "description")
+#View(Chad_Harmonization_description)
+```
+
+```{r data importation}
+
+lst_test = Chad_Harmonization_description$Name
+
+for(i in 1:length(lst_test)) {                              # Head of for-loop
+  assign(lst_test[i],                                   # Read and store data frames
+         read_sav(paste0(dir_input_data,"/",lst_test[i],".sav")))
+}
+
+```
+
+
+
+
+
+# Data consistency  Check
+
+## Drop duplicated observations
+
+```{r}
+Chad_baseline_2018 <- Chad_baseline_2018 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_ea_2019 <- Chad_ea_2019 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_ea_2020 <- Chad_ea_2020 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_ea_2021 <- Chad_ea_2021 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_ea_2022 <- Chad_ea_2022 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_pdm_2021 <- Chad_pdm_2021 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+Chad_pdm_2022 <- Chad_pdm_2022 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))
+```
+
+## Consent check
+
+```{r}
+Chad_baseline_2018 <- Chad_baseline_2018  %>% filter(RESPConsent == 1)
+Chad_ea_2019 <- Chad_ea_2019  %>% filter(RESPConsent == "Oui")
+Chad_ea_2020 <- Chad_ea_2020  %>% filter(RESPConsent == 1)
+#Chad_ea_2021 <- Chad_ea_2021  %>% filter(RESPConsent =="")
+Chad_ea_2022 <- Chad_ea_2022 %>% filter(RESPConsent == 2)
+#Chad_pdm_2020 <- Chad_pdm_2020  %>% filter(RESPConsent =="")
+Chad_pdm_2021 <- Chad_pdm_2021  %>% filter(RESPConsent == 1)
+Chad_pdm_2022 <- Chad_pdm_2022  %>% filter(RESPConsent == 2)
+```
+
+## ID Check 
+
+```{r}
+Chad_baseline_2018 <- Chad_baseline_2018 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID))
+Chad_ea_2019 <- Chad_ea_2019 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID))
+Chad_ea_2020 <- Chad_ea_2020 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID))
+Chad_ea_2021 <- Chad_ea_2021 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID))
+Chad_ea_2022 <- Chad_ea_2022 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID)) 
+Chad_pdm_2020 <- Chad_pdm_2020 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID)) 
+Chad_pdm_2021 <- Chad_pdm_2021 %>% dplyr::distinct(ID,.keep_all = TRUE) %>% dplyr::filter(!is.na(ID)) 
+#Chad_pdm_2022 <- Chad_pdm_2022 %>% dplyr::distinct(ID) %>% dplyr::filter(!is.na(ID)) 
+Chad_pdm_2022$ID <- 1:nrow(Chad_pdm_2022)
+Chad_pdm_2022_with_ID <- labelled::to_factor(Chad_pdm_2022)
+haven::write_dta(Chad_pdm_2022_with_ID,"Chad_pdm_2022_with_ID.dta")
+```
+
+# Administrative check
+
+
+
+```{r TCD EA 2022  OCHA - Subnational Edge-matched Administrative Boundaries}
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(YEAR= "2022" %>% 
+                  structure(label = "Annee"))
+
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(SURVEY= "Enquête annuelle" %>% 
+                  structure(label = "Type d'enquête"))
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+    structure(label = "Nom du pays"))
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(ADMIN1Name = case_when(
+    ADMIN1Name == 1 ~  "Guera",
+    ADMIN1Name == 2 ~  "Barh-El-Gazel",
+    ADMIN1Name == 3 ~  "Kanem",
+    ADMIN1Name == 4 ~  "Lac",
+    ADMIN1Name == 5 ~  "Batha",
+    ADMIN1Name == 6 ~  "Ouaddai",
+    .default = as.character(ADMIN1Name)
+  )%>% 
+  structure(label = label(Chad_ea_2022$ADMIN1Name)))
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+Chad_ea_2022$ADMIN2Name<-as.character(Chad_ea_2022$ADMIN2Name)
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+  ADMIN2Name  ==  "1"  ~  "Barh-El-Gazel Sud",
+  ADMIN2Name  ==  "4"  ~  "Kanem",
+  ADMIN2Name  ==  "5"  ~  "Nord Kanem",
+  ADMIN2Name  ==  "7"  ~  "Mamdi",
+  ADMIN2Name  ==  "9"  ~  "Kaya",
+  ADMIN2Name  ==  "11"  ~  "Batha Ouest",
+  ADMIN2Name  ==  "12"  ~  "Batha Est",
+  ADMIN2Name  ==  "14"  ~  "Guera",
+  ADMIN2Name  ==  "15"  ~  "Abtouyour",
+  ADMIN2Name  ==  "16"  ~  "Barh-Signaka",
+  ADMIN2Name  ==  "18"  ~  "Ouara",
+  TRUE ~ as.character(ADMIN2Name)
+)%>% 
+  structure(label = label(Chad_ea_2022$ADMIN2Name)))
+
+Chad_ea_2022 = Chad_ea_2022 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Barh-Signaka" ~ "TD0403",
+    ADMIN2Name == "Abtouyour" ~ "TD0402",
+    ADMIN2Name == "Assoungha" ~ "TD1403",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Kimiti" ~ "TD2101",
+    ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+
+```
+
+```{r TCD PDM 2022  OCHA - Subnational Edge-matched Administrative Boundaries}
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(YEAR= "2022" %>% 
+                  structure(label = "Annee"))
+
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(SURVEY= "PDM" %>% 
+                  structure(label = "Type d'enquête"))
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+    structure(label = "Nom du pays"))
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(ADMIN1Name = case_when(
+    ADMIN1Name == 5 ~  "Guera",
+    ADMIN1Name == 1 ~  "Barh-El-Gazel",
+    ADMIN1Name == 2 ~  "Kanem",
+    ADMIN1Name == 3 ~  "Lac",
+    ADMIN1Name == 4 ~  "Batha",
+    ADMIN1Name == 6 ~  "Ouaddai",
+    .default = as.character(ADMIN1Name)
+  )%>% 
+  structure(label = label(Chad_pdm_2022$ADMIN1Name)))
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+Chad_pdm_2022$ADMIN2Name<-as.character(Chad_pdm_2022$ADMIN2Name)
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+  ADMIN2Name  ==  "1"  ~  "Barh-El-Gazel Sud",
+  ADMIN2Name  ==  "4"  ~  "Kanem",
+  ADMIN2Name  ==  "5"  ~  "Nord Kanem",
+  ADMIN2Name  ==  "7"  ~  "Mamdi",
+  ADMIN2Name  ==  "8"  ~  "Wayi",
+  ADMIN2Name  ==  "9"  ~  "Kaya",
+  ADMIN2Name  ==  "11"  ~  "Batha Ouest",
+  ADMIN2Name  ==  "12"  ~  "Batha Est",
+  ADMIN2Name  ==  "13"  ~  "Fitri",
+  ADMIN2Name  ==  "14"  ~  "Guera",
+  ADMIN2Name  ==  "15"  ~  "Abtouyour",
+  ADMIN2Name  ==  "18"  ~  "Ouara",
+  TRUE ~ as.character(ADMIN2Name)
+)%>% 
+  structure(label = label(Chad_pdm_2022$ADMIN2Name)))
+
+Chad_pdm_2022 = Chad_pdm_2022 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Fitri" ~ "TD0103",
+    ADMIN2Name == "Abtouyour" ~ "TD0402",
+    ADMIN2Name == "Assoungha" ~ "TD1403",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Kimiti" ~ "TD2101",
+    ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+```
+
+
+```{r TCD EA 2021  OCHA - Subnational Edge-matched Administrative Boundaries}
+
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(YEAR= "2021" %>% 
+                  structure(label = "Annee"))
+
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(SURVEY= "Enquête annuelle" %>% 
+                  structure(label = "Type d'enquête"))
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+    structure(label = "Nom du pays"))
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+
+
+################# admin1 codification
+Chad_ea_2021$ADMIN1Name<-as.character(Chad_ea_2021$ADMIN1Name)
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(ADMIN1Name=case_when(
+  ADMIN1Name  ==  "1"  ~  "Barh-El-Gazel",
+  ADMIN1Name  ==  "2"  ~  "Batha",
+  ADMIN1Name  ==  "3"  ~  "Borkou",
+  ADMIN1Name  ==  "4"  ~  "Chari-Baguirmi",
+  ADMIN1Name  ==  "5"  ~  "Ennedi Est",
+  ADMIN1Name  ==  "6"  ~  "Ennedi Ouest",
+  ADMIN1Name  ==  "7"  ~  "Guera",
+  ADMIN1Name  ==  "8"  ~  "Hadjer-Lamis",
+  ADMIN1Name  ==  "9"  ~  "Kanem",
+  ADMIN1Name  ==  "10"  ~  "Lac",
+  ADMIN1Name  ==  "11"  ~  "Logone Occidental",
+  ADMIN1Name  ==  "12"  ~  "Logone Oriental",
+  ADMIN1Name  ==  "13"  ~  "Mandoul",
+  ADMIN1Name  ==  "14"  ~  "Mayo-Kebbi Est",
+  ADMIN1Name  ==  "15"  ~  "Mayo-Kebbi Ouest",
+  ADMIN1Name  ==  "16"  ~  "Moyen-Chari",
+  ADMIN1Name  ==  "17"  ~  "Ouaddai",
+  ADMIN1Name  ==  "18"  ~  "Salamat",
+  ADMIN1Name  ==  "19"  ~  "Sila",
+  ADMIN1Name  ==  "20"  ~  "Tandjile",
+  ADMIN1Name  ==  "21"  ~  "Tibesti",
+  ADMIN1Name  ==  "22"  ~  "Wadi Fira",
+  ADMIN1Name  ==  "23"  ~  "Ouaddai",
+  TRUE ~ as.character(ADMIN1Name)
+)%>% 
+  structure(label = label(Chad_ea_2021$ADMIN1Name)))
+
+
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+
+##
+Chad_ea_2021$ADMIN2Name<-as.character(Chad_ea_2021$ADMIN2Name)
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+  ADMIN2Name  ==  "1"  ~  "Barh-El-Gazel Sud",
+  ADMIN2Name  ==  "4"  ~  "Batha Ouest",
+  ADMIN2Name  ==  "5"  ~  "Batha Est",
+  ADMIN2Name  ==  "16"  ~  "Guera",
+  ADMIN2Name  ==  "23"  ~  "Kanem",
+  ADMIN2Name  ==  "24"  ~  "Nord Kanem",
+  ADMIN2Name  ==  "27"  ~  "Wayi",
+  ADMIN2Name  ==  "53"  ~  "Ouara",
+  ADMIN2Name  ==  "70"  ~  "Barh-El-Gazel Sud",
+  TRUE ~ as.character(ADMIN2Name)
+)%>% 
+  structure(label = label(Chad_ea_2021$ADMIN2Name)))
+
+
+Chad_ea_2021 = Chad_ea_2021 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Assoungha" ~ "TD1403",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Kimiti" ~ "TD2101",
+    ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+
+```
+
+
+```{r TCD PDM 2021  OCHA - Subnational Edge-matched Administrative Boundaries}
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(YEAR= "2021" %>% 
+                  structure(label = "Annee"))
+
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(SURVEY= "PDM" %>% 
+                  structure(label = "Type d'enquête"))
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+    structure(label = "Nom du pays"))
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+
+
+################# admin1 codification
+Chad_pdm_2021$ADMIN1Name<-as.character(Chad_pdm_2021$ADMIN1Name)
+
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(ADMIN1Name=case_when(
+    ADMIN1Name  ==  "1"  ~  "Barh-El-Gazel",
+    ADMIN1Name  ==  "2"  ~  "Batha",
+    ADMIN1Name  ==  "3"  ~  "Borkou",
+    ADMIN1Name  ==  "4"  ~  "Chari-Baguirmi",
+    ADMIN1Name  ==  "5"  ~  "Ennedi Est",
+    ADMIN1Name  ==  "6"  ~  "Ennedi Ouest",
+    ADMIN1Name  ==  "7"  ~  "Guera",
+    ADMIN1Name  ==  "8"  ~  "Hadjer-Lamis",
+    ADMIN1Name  ==  "9"  ~  "Kanem",
+    ADMIN1Name  ==  "10"  ~  "Lac",
+    ADMIN1Name  ==  "11"  ~  "Logone Occidental",
+    ADMIN1Name  ==  "12"  ~  "Logone Oriental",
+    ADMIN1Name  ==  "13"  ~  "Mandoul",
+    ADMIN1Name  ==  "14"  ~  "Mayo-Kebbi Est",
+    ADMIN1Name  ==  "15"  ~  "Mayo-Kebbi Ouest",
+    ADMIN1Name  ==  "16"  ~  "Moyen-Chari",
+    ADMIN1Name  ==  "17"  ~  "Ouaddai",
+    ADMIN1Name  ==  "18"  ~  "Salamat",
+    ADMIN1Name  ==  "19"  ~  "Sila",
+    ADMIN1Name  ==  "20"  ~  "Tandjile",
+    ADMIN1Name  ==  "21"  ~  "Tibesti",
+    ADMIN1Name  ==  "22"  ~  "Wadi Fira",
+    ADMIN1Name  ==  "23"  ~  "Ouaddai",
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = label(Chad_pdm_2021$ADMIN1Name)))
+
+
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+Chad_pdm_2021$ADMIN2Name<-as.character(Chad_pdm_2021$ADMIN2Name)
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+    ADMIN2Name  ==  "    2,00"  ~  "Barh-El-Gazel Sud",
+    ADMIN2Name  ==  "    3,00"  ~  "Barh-El-Gazel Ouest",
+    ADMIN2Name  ==  "    4,00"  ~  "Batha Est",
+    ADMIN2Name  ==  "    5,00"  ~  "Batha Ouest",
+    ADMIN2Name  ==  "   16,00"  ~  "Guera",
+    ADMIN2Name  ==  "   23,00"  ~  "Kanem",
+    ADMIN2Name  ==  "   24,00"  ~  "Nord Kanem",
+    ADMIN2Name  ==  "   25,00"  ~  "Wadi-Bissam",
+    ADMIN2Name  ==  "   27,00"  ~  "Kaya",
+    ADMIN2Name  ==  "   53,00"  ~  "Ouara",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = label(Chad_pdm_2021$ADMIN2Name)))
+
+Chad_pdm_2021 = Chad_pdm_2021 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Barh-El-Gazel Ouest" ~ "TD1903",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    #ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Wadi-Bissam" ~ "TD0603",
+    #ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+```
+
+
+```{r TCD EA 2020  OCHA - Subnational Edge-matched Administrative Boundaries}
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(YEAR= "2020" %>% 
+                  structure(label = "Annee"))
+
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(SURVEY= "Enquête annuelle" %>% 
+                  structure(label = "Type d'enquête"))
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+                  structure(label = "Nom du pays"))
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+
+
+################# admin1 codification
+Chad_ea_2020$ADMIN1Name<-as.character(Chad_ea_2020$ADMIN1Name)
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(ADMIN1Name=case_when(
+    ADMIN1Name  ==  "1"  ~  "Barh-El-Gazel",
+    ADMIN1Name  ==  "2"  ~  "Batha",
+    ADMIN1Name  ==  "3"  ~  "Borkou",
+    ADMIN1Name  ==  "4"  ~  "Chari-Baguirmi",
+    ADMIN1Name  ==  "5"  ~  "Ennedi Est",
+    ADMIN1Name  ==  "6"  ~  "Ennedi Ouest",
+    ADMIN1Name  ==  "7"  ~  "Guera",
+    ADMIN1Name  ==  "8"  ~  "Hadjer-Lamis",
+    ADMIN1Name  ==  "9"  ~  "Kanem",
+    ADMIN1Name  ==  "10"  ~  "Lac",
+    ADMIN1Name  ==  "11"  ~  "Logone Occidental",
+    ADMIN1Name  ==  "12"  ~  "Logone Oriental",
+    ADMIN1Name  ==  "13"  ~  "Mandoul",
+    ADMIN1Name  ==  "14"  ~  "Mayo-Kebbi Est",
+    ADMIN1Name  ==  "15"  ~  "Mayo-Kebbi Ouest",
+    ADMIN1Name  ==  "16"  ~  "Moyen-Chari",
+    ADMIN1Name  ==  "17"  ~  "Ouaddai",
+    ADMIN1Name  ==  "18"  ~  "Salamat",
+    ADMIN1Name  ==  "19"  ~  "Sila",
+    ADMIN1Name  ==  "20"  ~  "Tandjile",
+    ADMIN1Name  ==  "21"  ~  "Tibesti",
+    ADMIN1Name  ==  "22"  ~  "Wadi Fira",
+    ADMIN1Name  ==  "23"  ~  "Ouaddai",
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = label(Chad_ea_2020$ADMIN1Name)))
+
+
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+
+##
+Chad_ea_2020$ADMIN2Name<-as.character(Chad_ea_2020$ADMIN2Name)
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+    ADMIN2Name  ==  "2"  ~  "Barh-El-Gazel Sud",
+    ADMIN2Name  ==  "5"  ~  "Batha Ouest",
+    ADMIN2Name  ==  "4"  ~  "Batha Est",
+    ADMIN2Name  ==  "16"  ~  "Guera",
+    ADMIN2Name  ==  "17"  ~  "Mangalme",
+    ADMIN2Name  ==  "19"  ~  "Abtouyour",
+    ADMIN2Name  ==  "23"  ~  "Kanem",
+    ADMIN2Name  ==  "24"  ~  "Nord Kanem",
+    ADMIN2Name  ==  "27"  ~  "Kaya",
+    ADMIN2Name  ==  "28"  ~  "Mamdi",
+    ADMIN2Name  ==  "29"  ~  "Wayi",
+    ADMIN2Name  ==  "53"  ~  "Ouara",
+    ADMIN2Name  ==  "59"  ~  "Kimiti",
+    ADMIN2Name  ==  "67"  ~  "Dar-Tama",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = label(Chad_ea_2020$ADMIN2Name)))
+
+
+Chad_ea_2020 = Chad_ea_2020 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Abtouyour" ~ "TD0402",
+    ADMIN2Name == "Mangalme" ~ "TD0404",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Kimiti" ~ "TD2101",
+    ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+```
+
+
+```{r TCD PDM 2020  OCHA - Subnational Edge-matched Administrative Boundaries}
+Chad_pdm_2020 = Chad_pdm_2020 %>%
+  dplyr::mutate(YEAR= "2020" %>% 
+                  structure(label = "Annee"))
+
+Chad_pdm_2020 = Chad_pdm_2020 %>%
+  dplyr::mutate(SURVEY= "PDM" %>% 
+                  structure(label = "Type d'enquête"))
+Chad_pdm_2020 = Chad_pdm_2020 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+                  structure(label = "Nom du pays"))
+Chad_pdm_2020 = Chad_pdm_2020 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+
+
+################# admin1 codification
+Chad_pdm_2020$ADMIN1Name<-as.character(Chad_pdm_2020$ADMIN1Name)
+
+Chad_pdm_2020 = Chad_pdm_2020 %>%
+  dplyr::mutate(ADMIN1Name=case_when(
+    ADMIN1Name  ==  "1"  ~  "Barh-El-Gazel",
+    ADMIN1Name  ==  "2"  ~  "Batha",
+    ADMIN1Name  ==  "3"  ~  "Borkou",
+    ADMIN1Name  ==  "4"  ~  "Chari-Baguirmi",
+    ADMIN1Name  ==  "5"  ~  "Ennedi Est",
+    ADMIN1Name  ==  "6"  ~  "Ennedi Ouest",
+    ADMIN1Name  ==  "7"  ~  "Guera",
+    ADMIN1Name  ==  "8"  ~  "Hadjer-Lamis",
+    ADMIN1Name  ==  "9"  ~  "Kanem",
+    ADMIN1Name  ==  "10"  ~  "Lac",
+    ADMIN1Name  ==  "11"  ~  "Logone Occidental",
+    ADMIN1Name  ==  "12"  ~  "Logone Oriental",
+    ADMIN1Name  ==  "13"  ~  "Mandoul",
+    ADMIN1Name  ==  "14"  ~  "Mayo-Kebbi Est",
+    ADMIN1Name  ==  "15"  ~  "Mayo-Kebbi Ouest",
+    ADMIN1Name  ==  "16"  ~  "Moyen-Chari",
+    ADMIN1Name  ==  "17"  ~  "Ouaddai",
+    ADMIN1Name  ==  "18"  ~  "Salamat",
+    ADMIN1Name  ==  "19"  ~  "Sila",
+    ADMIN1Name  ==  "20"  ~  "Tandjile",
+    ADMIN1Name  ==  "21"  ~  "Tibesti",
+    ADMIN1Name  ==  "22"  ~  "Wadi Fira",
+    ADMIN1Name  ==  "23"  ~  "Ouaddai",
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = label(Chad_pdm_2020$ADMIN1Name)))
+
+
+Chad_pdm_2020 = Chad_pdm_2020 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+```
+
+
+```{r TCD EA 2019  OCHA - Subnational Edge-matched Administrative Boundaries}
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(YEAR= "2019" %>% 
+                  structure(label = "Annee"))
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(SURVEY= "Enquête annuelle" %>% 
+                  structure(label = "Type d'enquête"))
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+                  structure(label = "Nom du pays"))
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(ADMIN1Name=case_when(
+    ADMIN1Name == "BARH EL GAZAL" ~ "Barh-El-Gazel",
+    ADMIN1Name == "Barh El Gazal" ~ "Barh-El-Gazel",
+    ADMIN1Name == "BATHA" ~ "Batha",
+    ADMIN1Name == "GUERA" ~ "Guera",
+    ADMIN1Name == "KANEM" ~ "Kanem",
+    ADMIN1Name == "OUADDAI" ~ "Ouaddai",
+    ADMIN1Name == "LAC" ~ "Lac",
+    ADMIN1Name == "SILA" ~ "Sila",
+    ADMIN1Name == "WADI FIRA" ~ "Wadi Fira",
+    ADMIN1Name == "Ouaddaï" ~ "Ouaddai",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = label(Chad_ea_2019$ADMIN1Name)))
+
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+    ADMIN2Name == "Guéra" ~ "Guera",
+    ADMIN2Name == "Darh Tama" ~ "Dar-Tama",
+    ADMIN2Name == "Assongha" ~ "Assoungha",
+    ADMIN2Name == "Barh El Gazal Sud" ~ "Barh-El-Gazel Sud",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = label(Chad_ea_2019$ADMIN2Name)))
+
+
+
+Chad_ea_2019 = Chad_ea_2019 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Assoungha" ~ "TD1403",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Kimiti" ~ "TD2101",
+    ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+
+```
+
+
+
+```{r TCD baseline 2018  OCHA - Subnational Edge-matched Administrative Boundaries}
+
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(YEAR= "2018" %>% 
+                  structure(label = "Annee"))
+
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(SURVEY= "Baseline" %>% 
+                  structure(label = "Type d'enquête"))
+
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(ADMIN0Name= "Tchad" %>% 
+                  structure(label = "Nom du pays"))
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(adm0_ocha= "TD" %>% 
+                  structure(label = "Admin 0 ID"))
+
+
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(ADMIN1Name=case_when(
+    ADMIN1Name == 1 ~ "Barh-El-Gazel",
+    ADMIN1Name == 2 ~ "Batha",
+    ADMIN1Name == 7 ~ "Guera",
+    ADMIN1Name == 9 ~ "Kanem",
+    ADMIN1Name == 10 ~ "Lac",
+    ADMIN1Name == 19 ~ "Sila",
+    ADMIN1Name == 22 ~ "Wadi Fira",
+    ADMIN1Name == 17 ~ "Ouaddai",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = label(Chad_baseline_2018$ADMIN1Name)))
+
+
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(adm1_ocha=case_when(
+    ADMIN1Name == "Barh-El-Gazel" ~ "TD19",
+    ADMIN1Name == "Batha" ~ "TD01",
+    ADMIN1Name == "Guera" ~ "TD04",
+    ADMIN1Name == "Kanem" ~ "TD06",
+    ADMIN1Name == "Lac" ~ "TD07",
+    ADMIN1Name == "Ouaddai" ~ "TD14",
+    ADMIN1Name == "Sila" ~ "TD21",
+    ADMIN1Name == "Wadi Fira" ~ "TD17",
+    
+    TRUE ~ as.character(ADMIN1Name)
+  )%>% 
+    structure(label = "Admin 1 ID"))
+
+
+Chad_baseline_2018$ADMIN2Name<-as.character(Chad_baseline_2018$ADMIN2Name)
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(ADMIN2Name=case_when(
+    ADMIN2Name  ==  "1"  ~  "Barh-El-Gazel Sud",
+    ADMIN2Name  ==  "4"  ~  "Batha Ouest",
+    ADMIN2Name  ==  "5"  ~  "Batha Est",
+    ADMIN2Name  ==  "16"  ~  "Guera",
+    ADMIN2Name  ==  "23"  ~  "Kanem",
+    ADMIN2Name  ==  "24"  ~  "Nord Kanem",
+    ADMIN2Name  ==  "26"  ~  "Mamdi",
+    ADMIN2Name  ==  "28"  ~  "Kaya",
+    ADMIN2Name  ==  "53"  ~  "Ouara",
+    ADMIN2Name  ==  "55"  ~  "Assoungha",
+    ADMIN2Name  ==  "59"  ~  "Kimiti",
+    ADMIN2Name  ==  "67"  ~  "Dar-Tama",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = label(Chad_baseline_2018$ADMIN2Name)))
+
+
+Chad_baseline_2018 = Chad_baseline_2018 %>%
+  dplyr::mutate(adm2_ocha=case_when(
+    ADMIN2Name == "Assoungha" ~ "TD1403",
+    ADMIN2Name == "Barh-El-Gazel Sud" ~ "TD1902",
+    ADMIN2Name == "Batha Est" ~ "TD0102",
+    ADMIN2Name == "Batha Ouest" ~ "TD0101",
+    ADMIN2Name == "Dar-Tama" ~ "TD1702",
+    ADMIN2Name == "Guera" ~ "TD0401",
+    ADMIN2Name == "Kanem" ~ "TD0601",
+    ADMIN2Name == "Kaya" ~ "TD0703",
+    ADMIN2Name == "Kimiti" ~ "TD2101",
+    ADMIN2Name == "Mamdi" ~ "TD0701",
+    ADMIN2Name == "Nord Kanem" ~ "TD0602",
+    ADMIN2Name == "Ouara" ~ "TD1401",
+    ADMIN2Name == "Wayi" ~ "TD0702",
+    TRUE ~ as.character(ADMIN2Name)
+  )%>% 
+    structure(label = "Admin 2 ID"))
+
+```
+
+
+
+
+# Indicator checks
+
+## Food consumption score
+
+The Food consumption Score (FCS) is an index that aggregates household-level data on the diversity and frequency of food groups consumed over the last 7 days. It is then weighted according to the relative nutritional value of the consumed food groups. Food groups containing nutritionally dense foods (e.g. animal based products) are given greater weight than those containing less nutritional value (e.g. tubers) as follows: (main staples:2, pulses:3, vegetables:1, fruit:1, meat or fish:4, milk:4, sugar:0.5, oil:0.5).
+
+### FCS : Céréales et tubercules
+
+```{r FCS Staple}
+#expss::val_lab(Chad_baseline_2018$FCSStap)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStap,show.na = T)
+```
+
+### FCS : Céréales et tubercules - Sources
+
+```{r FCS  Source ref }
+# Codes d’acquisition des aliments 
+# 1 = Production propre (récoltes, élevage) ; 2 = Pêche / Chasse ; 3 = Cueillette ; 4 = Prêts ; 5 = Marché (achat avec des espèces) ; 6 = Marché (achat à crédit) ;
+# 7 = Mendicité ; 8 = Troc travail ou biens contre des aliments ; 9 = Dons (aliments) de membres de la famille ou d’amis ; 10 = Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc.
+
+```
+
+
+```{r FCS Staple Source}
+expss::val_lab(Chad_baseline_2018$FCSStapSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSStapSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSStapSRf <- labelled::labelled(Chad_baseline_2018$FCSStapSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSStapSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSStapSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+expss::val_lab(Chad_ea_2022$FCSStapSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSStapSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSStapSRf,show.na = T)
+```
+
+
+
+### FCS : Légumineuses
+
+```{r FCS Pulses}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulse,show.na = T)
+```
+### FCS : Légumineuses - Sources
+
+```{r FCS Pulses Sources}
+expss::val_lab(Chad_baseline_2018$FCSPulseSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSPulseSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSPulseSRf <- labelled::labelled(Chad_baseline_2018$FCSPulseSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSPulseSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSPulseSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+expss::val_lab(Chad_ea_2022$FCSPulseSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSPulseSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPulseSRf,show.na = T)
+```
+
+
+### FCS : Lait et produits laitiers
+
+```{r FCS Dairy}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairy,show.na = T)
+```
+
+
+### FCS : Lait et produits laitiers - Sources
+
+```{r FCS Dairy Sources}
+expss::val_lab(Chad_baseline_2018$FCSDairySRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSDairySRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSDairySRf <- labelled::labelled(Chad_baseline_2018$FCSDairySRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSDairySRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSDairySRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+expss::val_lab(Chad_ea_2022$FCSDairySRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSDairySRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSDairySRf,show.na = T)
+```
+
+
+
+
+### FCS: Viande, poisson et oeufs
+
+```{r FCSPr}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPr,show.na = T)
+```
+
+### FCS: Viande, poisson et oeufs - Sources
+
+```{r FCSPr Sources}
+expss::val_lab(Chad_baseline_2018$FCSPrSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSPrSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSPrSRf <- labelled::labelled(Chad_baseline_2018$FCSPrSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSPrSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSPrSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrSRf,show.na = T)
+```
+
+
+
+### FCS : Chair/viande rouge
+
+```{r FCS PrMeatF}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatF,show.na = T)
+```
+
+### FCS : Viande d'organe, telle que: (foie, reins, coeur et / ou autres abats) 
+
+
+```{r FCS PrMeatO}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrMeatO,show.na = T)
+```
+
+### FCS : Poissons et coquillage, tels que: (poissons, y compris le thon en conserve, les escargots et / ou d'autres fruits de mer remplacer par des exemples localement pertinents )
+
+
+```{r FCS PrFish}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrFish,show.na = T)
+```
+
+
+### FCS : Oeufs
+
+```{r}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSPrEgg,show.na = T)
+```
+
+
+### FCS : Légumes et feuilles , tels que : (épinards, oignons, tomates, carottes, poivrons, haricots verts, laitue, etc)
+
+```{r FCSVeg}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVeg,show.na = T)
+```
+
+### FCS : Légumes et feuilles , tels que : (épinards, oignons, tomates, carottes, poivrons, haricots verts, laitue, etc) - Sources
+
+```{r FCSVeg Sources}
+expss::val_lab(Chad_baseline_2018$FCSVegSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSVegSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSVegSRf <- labelled::labelled(Chad_baseline_2018$FCSVegSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSVegSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSVegSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+#expss::val_lab(Chad_ea_2022$FCSVegSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSVegSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegSRf,show.na = T)
+```
+
+
+### FCS : Légumes oranges (légumes riches en Vitamine A)
+
+```{r FCSVegOrg}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegOrg,show.na = T)
+```
+
+
+### FCS : Légumes à feuilles vertes,,  tels que : ( épinards, brocoli, amarante et/ou autres feuilles vert foncé , feuilles de manioc )
+
+```{r FCSVegGre}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSVegGre,show.na = T)
+```
+
+
+
+### FCS : Fruits,  tels que : (banane, pomme, citron, mangue, papaye, abricot, pêche, etc)
+
+```{r FCSFruit}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruit,show.na = T)
+```
+### FCS : Fruits,  tels que : (banane, pomme, citron, mangue, papaye, abricot, pêche, etc) - Sources
+
+```{r FCSFruit Sources}
+expss::val_lab(Chad_baseline_2018$FCSFruitSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSFruitSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSFruitSRf <- labelled::labelled(Chad_baseline_2018$FCSFruitSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSFruitSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSFruitSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+#expss::val_lab(Chad_ea_2022$FCSFruitSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSFruitSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFruitSRf,show.na = T)
+```
+
+
+### FCS : Huile/matières grasses/beurre: tels que (huile végétale, huile de palme, beurre de karité, margarine, autres huiles / matières grasses)
+
+```{r FCSFat}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFat,show.na = T)
+```
+
+### FCS : Huile/matières grasses/beurre: tels que (huile végétale, huile de palme, beurre de karité, margarine, autres huiles / matières grasses) - Sources
+
+```{r FCSFat Sources}
+expss::val_lab(Chad_baseline_2018$FCSFatSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSFatSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSFatSRf <- labelled::labelled(Chad_baseline_2018$FCSFatSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSFatSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSFatSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+expss::val_lab(Chad_ea_2022$FCSFatSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSFatSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSFatSRf,show.na = T)
+```
+
+
+
+### FSC : Sucre ou sucreries, tels que (sucre, miel, confiture, gâteau, bonbons, biscuits, viennoiserie et autres produits sucrés (boissons sucrées)  )
+
+```{r FCSSugar}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugar,show.na = T)
+```
+
+### FSC : Sucre ou sucreries, tels que (sucre, miel, confiture, gâteau, bonbons, biscuits, viennoiserie et autres produits sucrés (boissons sucrées)  ) - Sources
+
+```{r FCSSugar Sources}
+expss::val_lab(Chad_baseline_2018$FCSSugarSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSSugarSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSSugarSRf <- labelled::labelled(Chad_baseline_2018$FCSSugarSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSSugarSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSSugarSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+expss::val_lab(Chad_ea_2022$FCSSugarSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSSugarSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSSugarSRf,show.na = T)
+```
+
+
+
+### FCS : Condiments/épices: tels que (thé, café/cacao, sel, ail, épices, levure/levure chimique, tomate/sauce, viande ou poisson comme condiment, condiments incluant des petites quantités de lait/thé, café.) ?
+
+```{r FCSCond}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCond,show.na = T)
+```
+### FCS : Condiments/épices: tels que (thé, café/cacao, sel, ail, épices, levure/levure chimique, tomate/sauce, viande ou poisson comme condiment, condiments incluant des petites quantités de lait/thé, café.) ? - Sources
+
+```{r FCSCond Sources}
+expss::val_lab(Chad_baseline_2018$FCSCondSRf)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate_at(c("FCSCondSRf"),recode,"1"=1,"2"=5,"3"=6,"4"=8,"5"=9,"6"=10,"7"=2,"8"=NA_real_)
+Chad_baseline_2018$FCSCondSRf <- labelled::labelled(Chad_baseline_2018$FCSCondSRf, c(`Production propre (récoltes, élevage)` = 1, `Pêche / Chasse` = 2, Cueillette= 3,`Prêts`=4,`Marché (achat avec des espèces)`=5,`Marché (achat à crédit)`=6,`Mendicité`=7,`Troc travail ou biens contre des aliments`=8,`Dons (aliments) de membres de la famille ou d’amis`=9,`Aide alimentaire de la société civile, ONG, gouvernement, PAM, etc`=10))
+#check labels
+expss::val_lab(Chad_baseline_2018$FCSCondSRf)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+
+
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+
+
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+
+expss::val_lab(Chad_ea_2021$FCSCondSRf)
+
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+expss::val_lab(Chad_ea_2022$FCSCondSRf)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+
+expss::val_lab(Chad_pdm_2022$FCSCondSRf)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCondSRf,show.na = T)
+```
+
+
+### FCS computation
+
+```{r FCS}
+
+#calculate FCS
+Chad_baseline_2018 <- Chad_baseline_2018 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_baseline_2018$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_baseline_2018 <- Chad_baseline_2018 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_baseline_2018$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_baseline_2018$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+
+
+#############################
+#calculate FCS
+Chad_ea_2019 <- Chad_ea_2019 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_ea_2019$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_ea_2019 <- Chad_ea_2019 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_ea_2019$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_ea_2019$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_ea_2019 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_ea_2019 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+
+#######################################
+#calculate FCS
+Chad_ea_2020 <- Chad_ea_2020 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_ea_2020$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_ea_2020 <- Chad_ea_2020 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_ea_2020$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_ea_2020$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_ea_2020 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_ea_2020 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+#############################################
+#calculate FCS
+Chad_ea_2021 <- Chad_ea_2021 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_ea_2021$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_ea_2021 <- Chad_ea_2021 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_ea_2021$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_ea_2021$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_ea_2021 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_ea_2021 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+########################################
+#calculate FCS
+Chad_ea_2022 <- Chad_ea_2022 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_ea_2022$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_ea_2022 <- Chad_ea_2022 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_ea_2022$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_ea_2022$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_ea_2022 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_ea_2022 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+###########################################
+#calculate FCS
+Chad_pdm_2020 <- Chad_pdm_2020 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_pdm_2020$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_pdm_2020 <- Chad_pdm_2020 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_pdm_2020$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_pdm_2020$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_pdm_2020 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_pdm_2020 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+#############################################
+#calculate FCS
+Chad_pdm_2021 <- Chad_pdm_2021 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_pdm_2021$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_pdm_2021 <- Chad_pdm_2021 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_pdm_2021$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_pdm_2021$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_pdm_2021 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_pdm_2021 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+##############################################
+#calculate FCS
+Chad_pdm_2022 <- Chad_pdm_2022 %>% mutate(FCS = (2 * FCSStap) + (3 * FCSPulse)+ (4*FCSPr) +FCSVeg  +FCSFruit +(4*FCSDairy) + (0.5*FCSFat) + (0.5*FCSSugar))
+var_label(Chad_pdm_2022$FCS) <- "Score de consommation alimentaire"
+#create FCG groups based on 21/25 or 28/42 thresholds - analyst should decide which one to use.
+Chad_pdm_2022 <- Chad_pdm_2022 %>% mutate(
+  FCSCat21 = case_when(
+    FCS <= 21 ~ "Pauvre", between(FCS, 21.5, 35) ~ "Limite", FCS > 35 ~ "Acceptable"),
+  FCSCat28 = case_when(
+    FCS <= 28 ~ "Pauvre", between(FCS, 28.5, 42) ~ "Limite", FCS > 42 ~ "Acceptable"))
+var_label(Chad_pdm_2022$FCSCat21) <- "Groupe de consommation alimentaire - Seuils du 21/35"
+var_label(Chad_pdm_2022$FCSCat28) <-  "Groupe de consommation alimentaire - Seuils du 28/42"
+
+Chad_pdm_2022 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat21,show.na = T)
+Chad_pdm_2022 %>% 
+  sjPlot::plot_frq(coord.flip =T,FCSCat28,show.na = T)
+```
+
+
+## reduced coping strategy index OU l’indice réduit des stratégies de survie (rCSI)
+
+### rCSI : Consommer des aliments moins préférés et moins chers
+
+```{r rCSILessQlty}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSILessQlty,show.na = T)
+```
+
+
+### rCSI : Emprunter de la nourriture ou compter sur l’aide des parents/amis
+
+
+```{r rCSIBorrow}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIBorrow,show.na = T)
+```
+
+
+
+### rCSI : Diminuer la quantité consommée pendant les repas
+
+```{r rCSIMealSize}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealSize,show.na = T)
+```
+
+
+### rCSI :  Restreindre la consommation des adultes  pour nourrir les enfants
+
+```{r rCSIMealAdult}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealAdult,show.na = T)
+```
+
+
+### rCSI : Diminuer le nombre de repas par jour
+
+```{r rCSIMealNb}
+Chad_baseline_2018 %>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+
+Chad_ea_2019%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+Chad_ea_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+Chad_ea_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+Chad_ea_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+Chad_pdm_2020%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+Chad_pdm_2021%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+Chad_pdm_2022%>% 
+  sjPlot::plot_frq(coord.flip =T,rCSIMealNb,show.na = T)
+```
+
+
+```{r rCSI Score}
+#calculate rCSI Score
+Chad_baseline_2018 <- Chad_baseline_2018 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_baseline_2018$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_ea_2019 <- Chad_ea_2019 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_ea_2019$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_ea_2020 <- Chad_ea_2020 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_ea_2020$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_ea_2021 <- Chad_ea_2021 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_ea_2021$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_ea_2022 <- Chad_ea_2022 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_ea_2022$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_pdm_2020 <- Chad_pdm_2020 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_pdm_2020$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_pdm_2021 <- Chad_pdm_2021 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_pdm_2021$rCSI) <- "rCSI"
+#calculate rCSI Score
+Chad_pdm_2022 <- Chad_pdm_2022 %>% mutate(rCSI = rCSILessQlty  + (2 * rCSIBorrow) + rCSIMealSize + (3 * rCSIMealAdult) + rCSIMealNb)
+var_label(Chad_pdm_2022$rCSI) <- "rCSI"
+
+
+```
+
+
+Households are divided in four classes according to the rCSI score: 0-3, 4-18, and 19 and above which correspond to IPC Phases 1, 2 and 3 and above respectively.
+
+```{r rcsi_class}
+
+```
+
+
+## Stratégies d'adaptation aux moyens d'existence (LhCSI)
+
+```{r LhCSI labels values}
+# 1 = Non, je n'ai pas été confronté à une insuffisance de nourriture
+# 2 = Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire
+# 3 = Oui
+# 4 = Non applicable
+
+```
+
+
+### LhCSI : Vendre des actifs/biens non productifs du ménage (radio, meuble, réfrigérateur, télévision, bijoux etc.)
+
+```{r LhCSIStress1}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress1)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+Chad_baseline_2018$LhCSIStress1 <- as.character(Chad_baseline_2018$LhCSIStress1)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIStress1 = dplyr::case_when(
+      LhCSIStress1 == "0" ~ NA,
+      .default = as.factor(LhCSIStress1)
+    ) %>% structure(label = label(LhCSIStress1)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIStress1 = dplyr::recode(LhCSIStress1,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIStress1 <- labelled::labelled(Chad_baseline_2018$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress1)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIStress1)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress1 = dplyr::case_when(
+    LhCSIStress1 == 1 ~ "1",
+    LhCSIStress1 == 2 ~ "2",
+    LhCSIStress1 == 3 ~ "3",
+    LhCSIStress1 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress1 = dplyr::recode(LhCSIStress1,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIStress1 <- labelled::labelled(Chad_ea_2019$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIStress1)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIStress1)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIStress1 = dplyr::recode(LhCSIStress1,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIStress1 <- labelled::labelled(Chad_ea_2020$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIStress1)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIStress1)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+#update labels
+Chad_ea_2021$LhCSIStress1 <- labelled::labelled(Chad_ea_2021$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIStress1)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIStress1)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+#update labels
+Chad_ea_2022$LhCSIStress1 <- labelled::labelled(Chad_ea_2022$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIStress1)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress1)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress1 = ifelse(LhCSIStress1==0,NA,LhCSIStress1))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress1 = dplyr::recode(LhCSIStress1,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIStress1 <- labelled::labelled(Chad_pdm_2020$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress1)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress1)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#Change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIStress1 = dplyr::recode(LhCSIStress1,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIStress1 <- labelled::labelled(Chad_pdm_2021$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress1)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress1)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+#update labels
+Chad_pdm_2022$LhCSIStress1 <- labelled::labelled(Chad_pdm_2022$LhCSIStress1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress1)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress1)
+```
+
+
+### LhCSI : Vendre plus d’animaux (non-productifs) que d’habitude
+
+```{r LhCSIStress2}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress2)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+Chad_baseline_2018$LhCSIStress2 <- as.character(Chad_baseline_2018$LhCSIStress2)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIStress2 = dplyr::case_when(
+      LhCSIStress2 == "0" ~ NA,
+      .default = as.factor(LhCSIStress2)
+    ) %>% structure(label = label(LhCSIStress2)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIStress2 = dplyr::recode(LhCSIStress2,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIStress2 <- labelled::labelled(Chad_baseline_2018$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress2)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIStress2)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress2 = dplyr::case_when(
+    LhCSIStress2 == 1 ~ "1",
+    LhCSIStress2 == 2 ~ "2",
+    LhCSIStress2 == 3 ~ "3",
+    LhCSIStress2 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress2 = dplyr::recode(LhCSIStress2,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIStress2 <- labelled::labelled(Chad_ea_2019$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIStress2)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIStress2)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIStress2 = dplyr::recode(LhCSIStress2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIStress2 <- labelled::labelled(Chad_ea_2020$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIStress2)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIStress2)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#update labels
+Chad_ea_2021$LhCSIStress2 <- labelled::labelled(Chad_ea_2021$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIStress2)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIStress2)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#update labels
+Chad_ea_2022$LhCSIStress2 <- labelled::labelled(Chad_ea_2022$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIStress2)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress2)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress2 = ifelse(LhCSIStress2==0,NA,LhCSIStress2))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress2 = dplyr::recode(LhCSIStress2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIStress2 <- labelled::labelled(Chad_pdm_2020$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress2)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress2)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIStress2 = dplyr::recode(LhCSIStress2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIStress2 <- labelled::labelled(Chad_pdm_2021$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress2)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress2)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+#update labels
+Chad_pdm_2022$LhCSIStress2 <- labelled::labelled(Chad_pdm_2022$LhCSIStress2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress2)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress2)
+```
+
+
+### LhCSI : Dépenser l’épargne en raison d'un manque de nourriture ou d'argent pour acheter de la nourriture ?
+
+```{r LhCSIStress3}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress3)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+Chad_baseline_2018$LhCSIStress3 <- as.character(Chad_baseline_2018$LhCSIStress3)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIStress3 = dplyr::case_when(
+      LhCSIStress3 == "0" ~ NA,
+      .default = as.factor(LhCSIStress3)
+    ) %>% structure(label = label(LhCSIStress3)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIStress3 = dplyr::recode(LhCSIStress3,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIStress3 <- labelled::labelled(Chad_baseline_2018$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress3)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIStress3)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress3 = dplyr::case_when(
+    LhCSIStress3 == 1 ~ "1",
+    LhCSIStress3 == 2 ~ "2",
+    LhCSIStress3 == 3 ~ "3",
+    LhCSIStress3 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress3 = dplyr::recode(LhCSIStress3,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIStress3 <- labelled::labelled(Chad_ea_2019$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIStress3)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIStress3)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIStress3 = dplyr::recode(LhCSIStress3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIStress3 <- labelled::labelled(Chad_ea_2020$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIStress3)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIStress3)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+#update labels
+Chad_ea_2021$LhCSIStress3 <- labelled::labelled(Chad_ea_2021$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIStress3)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIStress3)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+#update labels
+Chad_ea_2022$LhCSIStress3 <- labelled::labelled(Chad_ea_2022$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIStress3)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress3)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress3 = ifelse(LhCSIStress3==0,NA,LhCSIStress3))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress3 = dplyr::recode(LhCSIStress3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIStress3 <- labelled::labelled(Chad_pdm_2020$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress3)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress3)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIStress3 = dplyr::recode(LhCSIStress3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIStress3 <- labelled::labelled(Chad_pdm_2021$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress3)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress3)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+#update labels
+Chad_pdm_2022$LhCSIStress3 <- labelled::labelled(Chad_pdm_2022$LhCSIStress3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress3)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress3)
+```
+
+
+### LhCSI : Emprunter de l’argent / nourriture auprès d’un prêteur formel /banque
+
+```{r LhCSIStress4}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress4)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+Chad_baseline_2018$LhCSIStress4 <- as.character(Chad_baseline_2018$LhCSIStress4)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIStress4 = dplyr::case_when(
+      LhCSIStress4 == "0" ~ NA,
+      .default = as.factor(LhCSIStress4)
+    ) %>% structure(label = label(LhCSIStress4)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIStress4 = dplyr::recode(LhCSIStress4,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIStress4 <- labelled::labelled(Chad_baseline_2018$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIStress4)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIStress4)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress4 = dplyr::case_when(
+    LhCSIStress4 == 1 ~ "1",
+    LhCSIStress4 == 2 ~ "2",
+    LhCSIStress4 == 3 ~ "3",
+    LhCSIStress4 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIStress4 = dplyr::recode(LhCSIStress4,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIStress4 <- labelled::labelled(Chad_ea_2019$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIStress4)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIStress4)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIStress4 = dplyr::recode(LhCSIStress4,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIStress4 <- labelled::labelled(Chad_ea_2020$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIStress4)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIStress4)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+#update labels
+Chad_ea_2021$LhCSIStress4 <- labelled::labelled(Chad_ea_2021$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIStress4)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIStress4)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+#update labels
+Chad_ea_2022$LhCSIStress4 <- labelled::labelled(Chad_ea_2022$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIStress4)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+
+
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress4)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress4 = ifelse(LhCSIStress4==0,NA,LhCSIStress4))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIStress4 = dplyr::recode(LhCSIStress4,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIStress4 <- labelled::labelled(Chad_pdm_2020$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIStress4)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress4)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIStress4 = dplyr::recode(LhCSIStress4,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIStress4 <- labelled::labelled(Chad_pdm_2021$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIStress4)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+
+
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress4)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+#update labels
+Chad_pdm_2022$LhCSIStress4 <- labelled::labelled(Chad_pdm_2022$LhCSIStress4, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIStress4)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIStress4)
+```
+
+
+
+### LhCSI : Réduire les dépenses non alimentaires essentielles telles que l’éducation, la santé (dont de médicaments)
+
+```{r LhCSICrisis1}
+# #View labels
+# expss::val_lab(Chad_baseline_2018$LhCSICrisis1)
+# Chad_baseline_2018 %>% 
+#   plot_frq(coord.flip =T,LhCSICrisis1)
+
+# #View labels
+# expss::val_lab(Chad_ea_2019$LhCSICrisis1)
+# Chad_ea_2019 %>% 
+#   plot_frq(coord.flip =T,LhCSICrisis1)
+
+# #View labels
+# expss::val_lab(Chad_ea_2020$LhCSICrisis1)
+# Chad_ea_2020 %>% 
+#   plot_frq(coord.flip =T,LhCSICrisis1)
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSICrisis1)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis1)
+#update labels
+Chad_ea_2021$LhCSICrisis1 <- labelled::labelled(Chad_ea_2021$LhCSICrisis1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSICrisis1)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis1)
+
+
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSICrisis1)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis1)
+
+#update labels
+Chad_ea_2022$LhCSICrisis1 <- labelled::labelled(Chad_ea_2022$LhCSICrisis1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSICrisis1)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis1)
+# #View labels
+# expss::val_lab(Chad_pdm_2020$LhCSICrisis1)
+# Chad_pdm_2020 %>% 
+#   plot_frq(coord.flip =T,LhCSICrisis1)
+
+# #View labels
+# expss::val_lab(Chad_pdm_2021$LhCSICrisis1)
+# Chad_pdm_2021 %>% 
+#   plot_frq(coord.flip =T,LhCSICrisis1)
+
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSICrisis1)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis1)
+
+#update labels
+Chad_pdm_2022$LhCSICrisis1 <- labelled::labelled(Chad_pdm_2022$LhCSICrisis1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSICrisis1)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis1)
+```
+
+### LhCSI : Vendre des biens productifs ou des moyens de transport (machine à coudre, brouette, vélo, car, etc.)
+
+```{r LhCSICrisis2}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSICrisis2)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+Chad_baseline_2018$LhCSICrisis2 <- as.character(Chad_baseline_2018$LhCSICrisis2)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSICrisis2 = dplyr::case_when(
+      LhCSICrisis2 == "0" ~ NA,
+      .default = as.factor(LhCSICrisis2)
+    ) %>% structure(label = label(LhCSICrisis2)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSICrisis2 = dplyr::recode(LhCSICrisis2,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSICrisis2 <- labelled::labelled(Chad_baseline_2018$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSICrisis2)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSICrisis2)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSICrisis2 = dplyr::case_when(
+    LhCSICrisis2 == 1 ~ "1",
+    LhCSICrisis2 == 2 ~ "2",
+    LhCSICrisis2 == 3 ~ "3",
+    LhCSICrisis2 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSICrisis2 = dplyr::recode(LhCSICrisis2,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSICrisis2 <- labelled::labelled(Chad_ea_2019$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSICrisis2)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSICrisis2)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSICrisis2 = dplyr::recode(LhCSICrisis2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSICrisis2 <- labelled::labelled(Chad_ea_2020$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSICrisis2)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSICrisis2)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+#update labels
+Chad_ea_2021$LhCSICrisis2 <- labelled::labelled(Chad_ea_2021$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSICrisis2)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSICrisis2)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+#update labels
+Chad_ea_2022$LhCSICrisis2 <- labelled::labelled(Chad_ea_2022$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSICrisis2)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSICrisis2)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSICrisis2 = ifelse(LhCSICrisis2==0,NA,LhCSICrisis2))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSICrisis2 = dplyr::recode(LhCSICrisis2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSICrisis2 <- labelled::labelled(Chad_pdm_2020$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSICrisis2)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSICrisis2)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSICrisis2 = dplyr::recode(LhCSICrisis2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSICrisis2 <- labelled::labelled(Chad_pdm_2021$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSICrisis2)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSICrisis2)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+#update labels
+Chad_pdm_2022$LhCSICrisis2 <- labelled::labelled(Chad_pdm_2022$LhCSICrisis2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSICrisis2)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis2)
+```
+
+### LhCSI : Retirer les enfants de l’école
+
+```{r LhCSICrisis3}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSICrisis3)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+Chad_baseline_2018$LhCSICrisis3 <- as.character(Chad_baseline_2018$LhCSICrisis3)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSICrisis3 = dplyr::case_when(
+      LhCSICrisis3 == "0" ~ NA,
+      .default = as.factor(LhCSICrisis3)
+    ) %>% structure(label = label(LhCSICrisis3)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSICrisis3 = dplyr::recode(LhCSICrisis3,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSICrisis3 <- labelled::labelled(Chad_baseline_2018$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSICrisis3)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSICrisis3)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSICrisis3 = dplyr::case_when(
+    LhCSICrisis3 == 1 ~ "1",
+    LhCSICrisis3 == 2 ~ "2",
+    LhCSICrisis3 == 3 ~ "3",
+    LhCSICrisis3 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSICrisis3 = dplyr::recode(LhCSICrisis3,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSICrisis3 <- labelled::labelled(Chad_ea_2019$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSICrisis3)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSICrisis3)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSICrisis3 = dplyr::recode(LhCSICrisis3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSICrisis3 <- labelled::labelled(Chad_ea_2020$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSICrisis3)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSICrisis3)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+#update labels
+Chad_ea_2021$LhCSICrisis3 <- labelled::labelled(Chad_ea_2021$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSICrisis3)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSICrisis3)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+#update labels
+Chad_ea_2022$LhCSICrisis3 <- labelled::labelled(Chad_ea_2022$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSICrisis3)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSICrisis3)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSICrisis3 = ifelse(LhCSICrisis3==0,NA,LhCSICrisis3))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSICrisis3 = dplyr::recode(LhCSICrisis3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSICrisis3 <- labelled::labelled(Chad_pdm_2020$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSICrisis3)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSICrisis3)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSICrisis3 = dplyr::recode(LhCSICrisis3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSICrisis3 <- labelled::labelled(Chad_pdm_2021$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSICrisis3)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSICrisis3)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+#update labels
+Chad_pdm_2022$LhCSICrisis3 <- labelled::labelled(Chad_pdm_2022$LhCSICrisis3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSICrisis3)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSICrisis3)
+```
+
+
+### LhCSI : Vendre la maison ou des terrains
+
+```{r LhCSIEmergency1}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIEmergency1)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+Chad_baseline_2018$LhCSIEmergency1 <- as.character(Chad_baseline_2018$LhCSIEmergency1)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIEmergency1 = dplyr::case_when(
+      LhCSIEmergency1 == "0" ~ NA,
+      .default = as.factor(LhCSIEmergency1)
+    ) %>% structure(label = label(LhCSIEmergency1)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIEmergency1 = dplyr::recode(LhCSIEmergency1,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIEmergency1 <- labelled::labelled(Chad_baseline_2018$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIEmergency1)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIEmergency1)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIEmergency1 = dplyr::case_when(
+    LhCSIEmergency1 == 1 ~ "1",
+    LhCSIEmergency1 == 2 ~ "2",
+    LhCSIEmergency1 == 3 ~ "3",
+    LhCSIEmergency1 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIEmergency1 = dplyr::recode(LhCSIEmergency1,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIEmergency1 <- labelled::labelled(Chad_ea_2019$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIEmergency1)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIEmergency1)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIEmergency1 = dplyr::recode(LhCSIEmergency1,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIEmergency1 <- labelled::labelled(Chad_ea_2020$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIEmergency1)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIEmergency1)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#update labels
+Chad_ea_2021$LhCSIEmergency1 <- labelled::labelled(Chad_ea_2021$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIEmergency1)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIEmergency1)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#update labels
+Chad_ea_2022$LhCSIEmergency1 <- labelled::labelled(Chad_ea_2022$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIEmergency1)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIEmergency1)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIEmergency1 = ifelse(LhCSIEmergency1==0,NA,LhCSIEmergency1))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIEmergency1 = dplyr::recode(LhCSIEmergency1,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIEmergency1 <- labelled::labelled(Chad_pdm_2020$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIEmergency1)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIEmergency1)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIEmergency1 = dplyr::recode(LhCSIEmergency1,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIEmergency1 <- labelled::labelled(Chad_pdm_2021$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIEmergency1)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIEmergency1)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+#update labels
+Chad_pdm_2022$LhCSIEmergency1 <- labelled::labelled(Chad_pdm_2022$LhCSIEmergency1, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIEmergency1)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency1)
+```
+
+
+### LhCSI : Mendier
+
+```{r LhCSIEmergency2}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIEmergency2)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+Chad_baseline_2018$LhCSIEmergency2 <- as.character(Chad_baseline_2018$LhCSIEmergency2)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIEmergency2 = dplyr::case_when(
+      LhCSIEmergency2 == "0" ~ NA,
+      .default = as.factor(LhCSIEmergency2)
+    ) %>% structure(label = label(LhCSIEmergency2)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIEmergency2 = dplyr::recode(LhCSIEmergency2,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIEmergency2 <- labelled::labelled(Chad_baseline_2018$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIEmergency2)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIEmergency2)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIEmergency2 = dplyr::case_when(
+    LhCSIEmergency2 == 1 ~ "1",
+    LhCSIEmergency2 == 2 ~ "2",
+    LhCSIEmergency2 == 3 ~ "3",
+    LhCSIEmergency2 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIEmergency2 = dplyr::recode(LhCSIEmergency2,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIEmergency2 <- labelled::labelled(Chad_ea_2019$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIEmergency2)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIEmergency2)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIEmergency2 = dplyr::recode(LhCSIEmergency2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIEmergency2 <- labelled::labelled(Chad_ea_2020$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIEmergency2)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIEmergency2)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#update labels
+Chad_ea_2021$LhCSIEmergency2 <- labelled::labelled(Chad_ea_2021$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIEmergency2)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIEmergency2)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#update labels
+Chad_ea_2022$LhCSIEmergency2 <- labelled::labelled(Chad_ea_2022$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIEmergency2)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIEmergency2)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIEmergency2 = ifelse(LhCSIEmergency2==0,NA,LhCSIEmergency2))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIEmergency2 = dplyr::recode(LhCSIEmergency2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIEmergency2 <- labelled::labelled(Chad_pdm_2020$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIEmergency2)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIEmergency2)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIEmergency2 = dplyr::recode(LhCSIEmergency2,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIEmergency2 <- labelled::labelled(Chad_pdm_2021$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIEmergency2)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+
+
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIEmergency2)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+#update labels
+Chad_pdm_2022$LhCSIEmergency2 <- labelled::labelled(Chad_pdm_2022$LhCSIEmergency2, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIEmergency2)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency2)
+```
+
+
+### LhCSI : Vendre les derniers animaux femelles reproductrices
+
+```{r LhCSIEmergency3}
+#View labels
+expss::val_lab(Chad_baseline_2018$LhCSIEmergency3)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+Chad_baseline_2018$LhCSIEmergency3 <- as.character(Chad_baseline_2018$LhCSIEmergency3)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>%
+  dplyr::mutate(
+    LhCSIEmergency3 = dplyr::case_when(
+      LhCSIEmergency3 == "0" ~ NA,
+      .default = as.factor(LhCSIEmergency3)
+    ) %>% structure(label = label(LhCSIEmergency3)))
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(LhCSIEmergency3 = dplyr::recode(LhCSIEmergency3,"1"=3,"2"=2,"3"=1,"4"=4))
+Chad_baseline_2018$LhCSIEmergency3 <- labelled::labelled(Chad_baseline_2018$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_baseline_2018$LhCSIEmergency3)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+#View labels
+expss::val_lab(Chad_ea_2019$LhCSIEmergency3)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIEmergency3 = dplyr::case_when(
+    LhCSIEmergency3 == 1 ~ "1",
+    LhCSIEmergency3 == 2 ~ "2",
+    LhCSIEmergency3 == 3 ~ "3",
+    LhCSIEmergency3 == 4 ~ "4",
+    .default = NA
+  ))
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(LhCSIEmergency3 = dplyr::recode(LhCSIEmergency3,"1"=1,"2"=2,"3"=3,"4"=4))
+Chad_ea_2019$LhCSIEmergency3 <- labelled::labelled(Chad_ea_2019$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2019$LhCSIEmergency3)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+
+#View labels
+expss::val_lab(Chad_ea_2020$LhCSIEmergency3)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#change labels
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(LhCSIEmergency3 = dplyr::recode(LhCSIEmergency3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_ea_2020$LhCSIEmergency3 <- labelled::labelled(Chad_ea_2020$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2020$LhCSIEmergency3)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+
+
+#View labels
+expss::val_lab(Chad_ea_2021$LhCSIEmergency3)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#update labels
+Chad_ea_2021$LhCSIEmergency3 <- labelled::labelled(Chad_ea_2021$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2021$LhCSIEmergency3)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+
+#View labels
+expss::val_lab(Chad_ea_2022$LhCSIEmergency3)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#update labels
+Chad_ea_2022$LhCSIEmergency3 <- labelled::labelled(Chad_ea_2022$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_ea_2022$LhCSIEmergency3)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+
+#View labels
+expss::val_lab(Chad_pdm_2020$LhCSIEmergency3)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#change labels
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIEmergency3 = ifelse(LhCSIEmergency3==0,NA,LhCSIEmergency3))
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(LhCSIEmergency3 = dplyr::recode(LhCSIEmergency3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2020$LhCSIEmergency3 <- labelled::labelled(Chad_pdm_2020$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2020$LhCSIEmergency3)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#View labels
+expss::val_lab(Chad_pdm_2021$LhCSIEmergency3)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+
+#change labels
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(LhCSIEmergency3 = dplyr::recode(LhCSIEmergency3,"1"=3,"3"=2,"2"=1,"4"=4))
+Chad_pdm_2021$LhCSIEmergency3 <- labelled::labelled(Chad_pdm_2021$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2021$LhCSIEmergency3)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#View labels
+expss::val_lab(Chad_pdm_2022$LhCSIEmergency3)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+#update labels
+Chad_pdm_2022$LhCSIEmergency3 <- labelled::labelled(Chad_pdm_2022$LhCSIEmergency3, c(`Non, je n'ai pas été confronté à une insuffisance de nourriture` = 1, `Non, parce que j’ai déjà vendu ces actifs ou mené cette activité au cours des 12 derniers mois et je ne peux pas continuer à le faire` = 2, Oui= 3,`Non applicable`=4))
+#check labels
+expss::val_lab(Chad_pdm_2022$LhCSIEmergency3)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,LhCSIEmergency3)
+```
+
+
+# Self-evaluated resilience score (SERS) 
+
+```{r}
+sers_variables = Chad_baseline_2018 %>% dplyr::select(gtsummary::starts_with("SERS")) %>% names()
+
+# df <-Chad_baseline_2018 %>%
+#    dplyr::select(sers_variables)
+# 
+# df <-Chad_ea_2019 %>%
+#    dplyr::select(sers_variables)
+
+ 
+expss::val_lab(Chad_ea_2020$SERSRebondir)
+# Chad_ea_2020 <- Chad_ea_2020 %>% 
+#   dplyr::mutate(across(sers_variables,
+#                 ~dplyr::recode(.,"1"=1,"2"=2,"3"=3,"4"=4,"5"=5
+#                 )
+#   )
+#   )
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(across(sers_variables,
+                ~labelled(., labels = c(
+                  "tout à fait d'accord" = 1,
+                  "d'accord" = 2,
+                  "ni d'accord ni pas d'accord " = 3,
+                  "pas d'accord" = 4,
+                  "pas du tout d'accord" = 5
+                )
+                )
+  )
+  )
+
+Chad_ea_2020 <- Chad_ea_2020 %>%
+  mutate(across(sers_variables, as.factor))
+
+expss::val_lab(Chad_ea_2021$SERSRebondir)
+Chad_ea_2021 <- Chad_ea_2021 %>% 
+  dplyr::mutate(across(sers_variables,
+                ~labelled(., labels = c(
+                  "tout à fait d'accord" = 1,
+                  "d'accord" = 2,
+                  "ni d'accord ni pas d'accord " = 3,
+                  "pas d'accord" = 4,
+                  "pas du tout d'accord" = 5
+                )
+                )
+  )
+  )
+
+
+
+expss::val_lab(Chad_ea_2022$SERSRebondir)
+Chad_ea_2022 <- Chad_ea_2022 %>% 
+  dplyr::mutate(across(sers_variables,
+                ~labelled(., labels = c(
+                  "tout à fait d'accord" = 1,
+                  "d'accord" = 2,
+                  "ni d'accord ni pas d'accord " = 3,
+                  "pas d'accord" = 4,
+                  "pas du tout d'accord" = 5
+                )
+                )
+  )
+  )
+# df <-Chad_pdm_2020 %>%
+#   dplyr::select(sers_variables) 
+
+# df <-Chad_pdm_2021 %>%
+#   dplyr::select(sers_variables) 
+
+
+expss::val_lab(Chad_pdm_2022$SERSRebondir)
+Chad_pdm_2022 <- Chad_pdm_2022 %>% 
+  dplyr::mutate(across(sers_variables,
+                ~labelled(., labels = c(
+                  "tout à fait d'accord" = 1,
+                  "d'accord" = 2,
+                  "ni d'accord ni pas d'accord " = 3,
+                  "pas d'accord" = 4,
+                  "pas du tout d'accord" = 5
+                )
+                )
+  )
+  )
+```
+
+
+# ASSET BENEFIT INDICATOR (ABI) 
+
+```{r}
+abi_variables = Chad_baseline_2018 %>% dplyr::select(gtsummary::starts_with("ABI")) %>% names()
+abi_variables <- c(abi_variables,"ActifCreationEmploi",
+"BeneficieEmploi",
+"TRavailMaintienActif")
+#
+abi_variables <- abi_variables[! abi_variables %in% c('ABISexparticipant')]
+
+
+# df <-Chad_baseline_2018 %>%
+#    dplyr::select(abi_variables)
+
+df <-Chad_ea_2019 %>%
+   dplyr::select(abi_variables)
+
+expss::val_lab(Chad_ea_2019$ABIProteger)
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~recode(.,
+                  "Non" = 0,
+                  "Oui" = 1,
+                  "NA" = 888
+                 )
+  )
+  )
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~labelled(., labels = c(
+                  "Non" = 0,
+                  "Oui" = 1,
+                  "Ne sait pas" = 888
+                )
+                )
+  )
+  )
+expss::val_lab(Chad_ea_2019$ABIProteger)
+
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~recode(.,
+                  "0" = 0,
+                  "1" = 1,
+                  "2" = 888
+                 )
+  )
+  )
+Chad_ea_2020 <- Chad_ea_2020 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~labelled(., labels = c(
+                  "Non" = 0,
+                  "Oui" = 1,
+                  "Ne sait pas" = 888
+                )
+                )
+  )
+  )
+expss::val_lab(Chad_ea_2020$ABIProteger)
+
+
+expss::val_lab(Chad_ea_2021$ABIProteger)
+Chad_ea_2021 <- Chad_ea_2021 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~recode(.,
+                  "1" = 0,
+                  "2" = 1,
+                  "3" = 888
+                 )
+  )
+  )
+Chad_ea_2021 <- Chad_ea_2021 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~labelled(., labels = c(
+                  "Non" = 0,
+                  "Oui" = 1,
+                  "Ne sait pas" = 888
+                )
+                )
+  )
+  )
+expss::val_lab(Chad_ea_2021$ABIProteger)
+
+
+expss::val_lab(Chad_ea_2022$ABIProteger)
+Chad_ea_2022 <- Chad_ea_2022 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~recode(.,
+                  "1" = 0,
+                  "2" = 1,
+                  "3" = 888
+                 )
+  )
+  )
+Chad_ea_2022 <- Chad_ea_2022 %>% 
+  dplyr::mutate(across(abi_variables,
+                ~labelled(., labels = c(
+                  "Non" = 0,
+                  "Oui" = 1,
+                  "Ne sait pas" = 888
+                )
+                )
+  )
+  )
+expss::val_lab(Chad_ea_2022$ABIProteger)
+ 
+expss::val_lab(Chad_pdm_2020$ABIProteger)
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(across(abi_variables,
+                       ~recode(.,
+                               "0" = 0,
+                               "1" = 1
+                               #"3" = 888
+                       )
+  )
+  )
+Chad_pdm_2020 <- Chad_pdm_2020 %>% 
+  dplyr::mutate(across(abi_variables,
+                       ~labelled(., labels = c(
+                         "Non" = 0,
+                         "Oui" = 1,
+                         "Ne sait pas" = 888
+                       )
+                       )
+  )
+  )
+expss::val_lab(Chad_pdm_2020$ABIProteger)
+
+
+expss::val_lab(Chad_pdm_2021$ABIProteger)
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(across(abi_variables,
+                       ~recode(.,
+                               "0" = 0,
+                               "1" = 1,
+                               "2" = 888
+                       )
+  )
+  )
+Chad_pdm_2021 <- Chad_pdm_2021 %>% 
+  dplyr::mutate(across(abi_variables,
+                       ~labelled(., labels = c(
+                         "Non" = 0,
+                         "Oui" = 1,
+                         "Ne sait pas" = 888
+                       )
+                       )
+  )
+  )
+expss::val_lab(Chad_pdm_2021$ABIProteger)
+
+
+
+expss::val_lab(Chad_pdm_2022$ABIProteger)
+Chad_pdm_2022 <- Chad_pdm_2022 %>% 
+  dplyr::mutate(across(abi_variables,
+                       ~recode(.,
+                               "0" = 0,
+                               "1" = 1
+                               #"3" = 888
+                       )
+  )
+  )
+Chad_pdm_2022 <- Chad_pdm_2022 %>% 
+  dplyr::mutate(across(abi_variables,
+                       ~labelled(., labels = c(
+                         "Non" = 0,
+                         "Oui" = 1,
+                         "Ne sait pas" = 888
+                       )
+                       )
+  )
+  )
+expss::val_lab(Chad_pdm_2022$ABIProteger)
+
+```
+
+
+# DEPART EN EXODE ET MIGRATION  
+
+```{r eval=FALSE, include=FALSE}
+mig_variables = c("MigrationEmploi",
+"NbMigrants",
+"RaisonMigration",
+"AutreRaisonEconomiques",
+"RaisonAccesServices",
+"DestinationMigration",
+"DureeMigration",
+"TendanceMigration",
+"RaisonHausseMig",
+"RaisonBaisseMig"
+)
+```
+
+
+# Social capital index (Indice de capital social)
+
+
+```{r eval=FALSE, include=FALSE}
+sci_variables = Chad_baseline_2018 %>% dplyr::select(gtsummary::starts_with("SCI")) %>% names()
+
+
+```
+
+# DIVERSITE ALIMENTAIRE DES FEMMES 
+
+```{r eval=FALSE, include=FALSE}
+mddw_variables = c("MDDW_resp_age",Chad_baseline_2018 %>% dplyr::select(gtsummary::starts_with("PWMDD")) %>% names())
+
+```
+
+# Régime alimentaire minimum acceptable (MAD)
+
+```{r eval=FALSE, include=FALSE}
+mad_variables = c("MAD_sex ",
+"MAD_dob",
+"MAD_resp_age ",
+"EverBreastF",
+"PCIYCBreastF",
+"PCIYCInfFormNb",
+"PCIYCDairyMiNb",
+"PCIYCDairyYoNb",
+"PCIYCStapPoNb",
+"MAD_module",
+"PCMADStapCer",
+"PCMADVegOrg",
+"PCMADStapRoo",
+"PCMADVegGre",
+"PCMADFruitOrg",
+"PCMADVegFruitOth",
+"PCMADPrMeatO",
+"PCMADPrMeatF",
+"PCMADPrEgg",
+"PCMADPrFish",
+"PCMADPulse",
+"PCMADDairy",
+"PCMADFatRpalm",
+"PCMADSnfChild",
+"PCMADSnfPowd",
+"PCMADSnfLns",
+"PCIYCMeals"
+)
+```
+
+# Date format check
+
+
+
+```{r Date format check}
+#as.Date(19213, origin = "1970-01-01")
+#as.Date(43791, origin = "1899-12-30")
+Chad_baseline_2018$SvyDatePDM<-as.Date(Chad_baseline_2018$SvyDatePDM)
+Chad_ea_2019$SvyDatePDM<-as.Date(Chad_ea_2019$SvyDatePDM, origin = "1899-12-30")
+Chad_ea_2020$SvyDatePDM<-as.Date(Chad_ea_2020$SvyDatePDM)
+Chad_ea_2021$SvyDatePDM<-as.Date(Chad_ea_2021$SvyDatePDM/86400, origin = "1970-01-01")
+Chad_ea_2022$SvyDatePDM<-as.Date(Chad_ea_2022$SvyDatePDM, origin = "1970-01-01")
+Chad_pdm_2020$SvyDatePDM<-as.Date(Chad_pdm_2020$SvyDatePDM)
+Chad_pdm_2021$SvyDatePDM<-as.Date(Chad_pdm_2021$SvyDatePDM)
+Chad_pdm_2022$SvyDatePDM<-str_trim(Chad_pdm_2022$SvyDatePDM, side = c("both", "left", "right"))
+Chad_pdm_2022$SvyDatePDM <- gsub(",00", "", Chad_pdm_2022$SvyDatePDM)
+Chad_pdm_2022$SvyDatePDM <- as.numeric(Chad_pdm_2022$SvyDatePDM)
+Chad_pdm_2022$SvyDatePDM<-as.Date(Chad_pdm_2022$SvyDatePDM, origin = "1970-01-01")
+```
+
+
+# Gender recodification
+
+```{r Gender recodification}
+# We need to recode gender label to:
+# 0 = Femme
+# 1 = Homme
+
+
+#View labels
+expss::val_lab(Chad_baseline_2018$HHHSex)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_baseline_2018$HHHSex<-dplyr::recode(Chad_baseline_2018$HHHSex, `2` = 0L, .default = 1L, .combine_value_labels = TRUE)
+Chad_baseline_2018$HHHSex <- labelled::labelled(Chad_baseline_2018$HHHSex, c(Femme = 0, Homme = 1))
+#Check new labels
+expss::val_lab(Chad_baseline_2018$HHHSex)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_ea_2019$HHHSex)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_ea_2019$HHHSex <- ifelse(Chad_ea_2019$HHHSex=="Feminin","Femme","Homme")
+
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  mutate(HHHSex=ifelse(HHHSex=="Femme",0,1))
+Chad_ea_2019$HHHSex<-dplyr::recode(Chad_ea_2019$HHHSex, "1" = 1, "0" = 0)
+Chad_ea_2019$HHHSex <- labelled::labelled(Chad_ea_2019$HHHSex, c(Femme = 0, Homme = 1))
+#Check labels
+expss::val_lab(Chad_ea_2019$HHHSex)
+Chad_ea_2019 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_ea_2020$HHHSex)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_ea_2020$HHHSex<-dplyr::recode(Chad_ea_2020$HHHSex, `2` = 0L, .default = 1L, .combine_value_labels = TRUE)
+Chad_ea_2020$HHHSex <- labelled::labelled(Chad_ea_2020$HHHSex, c(Femme = 0, Homme = 1))
+#Check new labels
+expss::val_lab(Chad_ea_2020$HHHSex)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_ea_2021$HHHSex)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_ea_2021$HHHSex<-dplyr::recode(Chad_ea_2021$HHHSex, `1` = 0L, .default = 1L, .combine_value_labels = TRUE)
+
+#Check labels
+expss::val_lab(Chad_ea_2021$HHHSex)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_ea_2022$HHHSex)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_ea_2022$HHHSex<-dplyr::recode(Chad_ea_2022$HHHSex, `1` = 0L, .default = 1L, .combine_value_labels = TRUE)
+#Check labels
+expss::val_lab(Chad_ea_2022$HHHSex)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_pdm_2020$HHHSex)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_pdm_2020$HHHSex<-dplyr::recode(Chad_pdm_2020$HHHSex, `2` = 0L, .default = 1L, .combine_value_labels = TRUE)
+Chad_pdm_2020$HHHSex <- labelled::labelled(Chad_pdm_2020$HHHSex, c(Femme = 0, Homme = 1))
+#Check labels
+expss::val_lab(Chad_pdm_2020$HHHSex)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_pdm_2021$HHHSex)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_pdm_2021$HHHSex<-dplyr::recode(Chad_pdm_2021$HHHSex, `2` = 0L, .default = 1L, .combine_value_labels = TRUE)
+Chad_pdm_2021$HHHSex <- labelled::labelled(Chad_pdm_2021$HHHSex, c(Femme = 0, Homme = 1))
+
+#Check labels
+expss::val_lab(Chad_pdm_2021$HHHSex)
+Chad_pdm_2021 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+
+#View labels
+expss::val_lab(Chad_pdm_2022$HHHSex)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+Chad_pdm_2022$HHHSex<-dplyr::recode(Chad_pdm_2022$HHHSex, `2` = 1L, .default = 0L, .combine_value_labels = TRUE)
+#Check labels
+expss::val_lab(Chad_pdm_2022$HHHSex)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,HHHSex)
+```
+
+
+```{r template, eval=FALSE, include=FALSE}
+expss::val_lab(Chad_baseline_2018$)
+expss::val_lab(Chad_baseline_2018$)
+expss::val_lab(Chad_ea_2019$)
+expss::val_lab(Chad_ea_2020$)
+expss::val_lab(Chad_ea_2021$)
+expss::val_lab(Chad_ea_2022$)
+expss::val_lab(Chad_pdm_2020$)
+expss::val_lab(Chad_pdm_2021$)
+expss::val_lab(Chad_pdm_2022$)
+```
+
+
+# Household head education level
+
+```{r Household head education level}
+expss::val_lab(Chad_baseline_2018$HHHEdu)
+
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=3,"3"=4,"4"=4,"5"=5))
+Chad_baseline_2018$HHHEdu <- labelled::labelled(Chad_baseline_2018$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+#check labels
+expss::val_lab(Chad_baseline_2018$HHHEdu)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,HHHEdu)
+
+##
+expss::val_lab(Chad_ea_2019$HHHEdu)
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(HHHEdu = case_when(
+    HHHEdu == "Aucune Instruction" ~ "1",
+    HHHEdu == "Coranique" ~ "2",
+    HHHEdu == "Primaire" ~ "3",
+    HHHEdu == "Secondaire" ~ "4",
+    HHHEdu ==  "Supérieur" ~ "5",
+    .default = NA
+  ))
+Chad_ea_2019 <- 
+  Chad_ea_2019 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=2,"3"=3,"4"=4,"5"=5))
+Chad_ea_2019$HHHEdu <- labelled::labelled(Chad_ea_2019$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+expss::val_lab(Chad_ea_2019$HHHEdu)
+
+expss::val_lab(Chad_ea_2020$HHHEdu)
+Chad_ea_2020 <- 
+  Chad_ea_2020 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=2,"3"=3,"4"=4,"5"=5))
+Chad_ea_2020$HHHEdu <- labelled::labelled(Chad_ea_2020$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+expss::val_lab(Chad_ea_2020$HHHEdu)
+##
+expss::val_lab(Chad_ea_2021$HHHEdu)
+Chad_ea_2021 <- 
+  Chad_ea_2021 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=2,"3"=3,"4"=3,"5"=4,"6"=5))
+Chad_ea_2021$HHHEdu <- labelled::labelled(Chad_ea_2021$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+expss::val_lab(Chad_ea_2021$HHHEdu)
+##
+expss::val_lab(Chad_ea_2022$HHHEdu)
+Chad_ea_2022 <- 
+  Chad_ea_2022 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=2,"3"=3,"4"=3,"5"=4,"6"=5))
+Chad_ea_2022$HHHEdu <- labelled::labelled(Chad_ea_2022$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+expss::val_lab(Chad_ea_2022$HHHEdu)
+##
+expss::val_lab(Chad_pdm_2020$HHHEdu)
+
+
+
+
+expss::val_lab(Chad_pdm_2021$HHHEdu)
+Chad_pdm_2021 <- 
+  Chad_pdm_2021 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=2,"3"=3,"4"=4,"5"=5))
+Chad_pdm_2021$HHHEdu <- labelled::labelled(Chad_pdm_2021$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+expss::val_lab(Chad_pdm_2021$HHHEdu)
+##
+expss::val_lab(Chad_pdm_2022$HHHEdu)
+Chad_pdm_2022 <- 
+  Chad_pdm_2022 %>% dplyr::mutate(HHHEdu = dplyr::recode(HHHEdu,"1"=1,"2"=2,"3"=3,"4"=3,"5"=4,"6"=5))
+Chad_pdm_2022$HHHEdu <- labelled::labelled(Chad_pdm_2022$HHHEdu, c(Aucune = 1, `Alphabétisé ou Coranique` = 2, Primaire= 3,Secondaire=4, Superieur=5))
+expss::val_lab(Chad_pdm_2022$HHHEdu)
+```
+# HHHMainActivity
+
+```{r}
+expss::val_lab(Chad_baseline_2018$HHHMainActivity)
+Chad_baseline_2018 %>% 
+  plot_frq(coord.flip =T,HHHMainActivity)
+expss::val_lab(Chad_ea_2019$HHHMainActivity)
+expss::val_lab(Chad_ea_2020$HHHMainActivity)
+Chad_ea_2020 %>% 
+  plot_frq(coord.flip =T,HHHMainActivity)
+expss::val_lab(Chad_ea_2021$HHHMainActivity)
+expss::val_lab(Chad_ea_2022$HHHMainActivity)
+expss::val_lab(Chad_pdm_2020$HHHMainActivity)
+expss::val_lab(Chad_pdm_2021$HHHMainActivity)
+expss::val_lab(Chad_pdm_2022$HHHMainActivity)
+```
+
+# HHHMatrimonial
+
+```{r}
+# Monogame    Polygame     Divorcé(e)   Veuf/Veuve    Célibataire 
+#   1           2           3              4           5 
+expss::val_lab(Chad_baseline_2018$HHHMatrimonial)
+Chad_baseline_2018 <- 
+  Chad_baseline_2018 %>% dplyr::mutate(HHHMatrimonial = dplyr::recode(HHHMatrimonial,"1"=1,"2"=2,"3"=5,"4"=5,"5"=4,"6"=3, "7"=3))
+Chad_baseline_2018$HHHMatrimonial <- labelled::labelled(Chad_baseline_2018$HHHMatrimonial, c(Monogame = 1, Polygame = 2, `Divorcé(e)`= 3,`Veuf/Veuve`=4, `Célibataire`=5))
+expss::val_lab(Chad_baseline_2018$HHHMatrimonial)
+
+expss::val_lab(Chad_ea_2019$HHHMatrimonial)
+Chad_ea_2019 <- Chad_ea_2019 %>% 
+  dplyr::mutate(HHHMatrimonial = case_when(
+    HHHMatrimonial == "Monogame" ~ "1",
+    HHHMatrimonial == "Polygame" ~ "2",
+    HHHMatrimonial == "Divorcé" ~ "3",
+    HHHMatrimonial == "Veuf" ~ "4",
+    HHHMatrimonial ==  "Célibataire" ~ "5",
+    .default = NA
+  ))
+Chad_ea_2019 <- 
+  Chad_ea_2019 %>% dplyr::mutate(HHHMatrimonial = dplyr::recode(HHHMatrimonial,"1"=1,"2"=2,"3"=5,"4"=5,"5"=4,"6"=3, "7"=3))
+Chad_ea_2019$HHHMatrimonial <- labelled::labelled(Chad_ea_2019$HHHMatrimonial, c(Monogame = 1, Polygame = 2, `Divorcé(e)`= 3,`Veuf/Veuve`=4, `Célibataire`=5))
+expss::val_lab(Chad_ea_2019$HHHMatrimonial)
+
+expss::val_lab(Chad_ea_2020$HHHMatrimonial)
+Chad_ea_2020$HHHMatrimonial <- labelled::labelled(Chad_ea_2020$HHHMatrimonial, c(Monogame = 1, Polygame = 2, `Divorcé(e)`= 3,`Veuf/Veuve`=4, `Célibataire`=5))
+expss::val_lab(Chad_ea_2020$HHHMatrimonial)
+
+
+expss::val_lab(Chad_ea_2021$HHHMatrimonial)
+
+
+expss::val_lab(Chad_ea_2022$HHHMatrimonial)
+
+expss::val_lab(Chad_pdm_2020$HHHMatrimonial)
+
+expss::val_lab(Chad_pdm_2021$HHHMatrimonial)
+Chad_pdm_2021$HHHMatrimonial <- labelled::labelled(Chad_pdm_2021$HHHMatrimonial, c(Monogame = 1, Polygame = 2, `Divorcé(e)`= 3,`Veuf/Veuve`=4, `Célibataire`=5))
+expss::val_lab(Chad_pdm_2021$HHHMatrimonial)
+expss::val_lab(Chad_pdm_2022$HHHMatrimonial)
+```
+
+
+# HHSourceIncome
+
+```{r}
+expss::val_lab(Chad_baseline_2018$HHSourceIncome)
+expss::val_lab(Chad_ea_2019$HHSourceIncome)
+expss::val_lab(Chad_ea_2020$HHSourceIncome)
+expss::val_lab(Chad_ea_2021$HHSourceIncome)
+expss::val_lab(Chad_ea_2022$HHSourceIncome)
+expss::val_lab(Chad_pdm_2020$HHSourceIncome)
+expss::val_lab(Chad_pdm_2021$HHSourceIncome)
+expss::val_lab(Chad_pdm_2022$HHSourceIncome)
+```
+
+
+# Assistance
+
+## Date assistance check
+
+```{r}
+Chad_ea_2021$DebutAssistance<-as.Date(Chad_ea_2021$DebutAssistance, origin = "1970-01-01")
+Chad_ea_2022$DebutAssistance<-as.Date(Chad_ea_2022$DebutAssistance, origin = "1970-01-01")
+Chad_pdm_2020$DebutAssistance<-as.Date(Chad_pdm_2020$DebutAssistance)
+Chad_pdm_2022$DebutAssistance<-as.Date(Chad_pdm_2022$DebutAssistance, origin = "1970-01-01")
+#Chad_baseline_2018$DebutAssistance<-as.Date(Chad_baseline_2018$DebutAssistance)
+#Chad_ea_2019$DebutAssistance<-as.Date(Chad_ea_2019$DebutAssistance, origin = "1899-12-30")
+#Chad_ea_2020$DebutAssistance<-as.Date(Chad_ea_2020$DebutAssistance)
+#Chad_pdm_2021$DebutAssistance<-as.Date(Chad_pdm_2021$DebutAssistance)
+
+```
+
+## Date last assistance check
+
+```{r}
+expss::val_lab(Chad_baseline_2018$DateDerniereAssist)
+expss::val_lab(Chad_ea_2019$DateDerniereAssist)
+expss::val_lab(Chad_ea_2020$DateDerniereAssist)
+expss::val_lab(Chad_ea_2021$DateDerniereAssist)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+Chad_ea_2021 <- 
+  Chad_ea_2021 %>% dplyr::mutate_at(c("DateDerniereAssist"),recode,"1"=NA_real_,"2"=1,"3"=2,"4"=3,"5"=NA_real_)
+Chad_ea_2021$DateDerniereAssist <- labelled::labelled(Chad_ea_2021$DateDerniereAssist, c(`moins d’une semaine` = 1, `entre 1 et 3 semaines` = 2,`plus de 3 semaines`=3))
+expss::val_lab(Chad_ea_2021$DateDerniereAssist)
+Chad_ea_2021 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+
+expss::val_lab(Chad_ea_2022$DateDerniereAssist)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+Chad_ea_2022 <- 
+  Chad_ea_2022 %>% dplyr::mutate_at(c("DateDerniereAssist"),recode,"1"=NA_real_,"2"=1,"3"=2,"4"=3,"5"=NA_real_)
+Chad_ea_2022$DateDerniereAssist <- labelled::labelled(Chad_ea_2022$DateDerniereAssist, c(`moins d’une semaine` = 1, `entre 1 et 3 semaines` = 2,`plus de 3 semaines`=3))
+expss::val_lab(Chad_ea_2022$DateDerniereAssist)
+Chad_ea_2022 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+
+
+expss::val_lab(Chad_pdm_2020$DateDerniereAssist)
+Chad_pdm_2020 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+
+
+expss::val_lab(Chad_pdm_2021$DateDerniereAssist)
+
+
+expss::val_lab(Chad_pdm_2022$DateDerniereAssist)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+Chad_pdm_2022 <- 
+  Chad_pdm_2022 %>% dplyr::mutate_at(c("DateDerniereAssist"),recode,"1"=NA_real_,"2"=1,"3"=2,"4"=3,"5"=NA_real_)
+Chad_pdm_2022$DateDerniereAssist <- labelled::labelled(Chad_pdm_2022$DateDerniereAssist, c(`moins d’une semaine` = 1, `entre 1 et 3 semaines` = 2,`plus de 3 semaines`=3))
+expss::val_lab(Chad_pdm_2022$DateDerniereAssist)
+Chad_pdm_2022 %>% 
+  plot_frq(coord.flip =T,DateDerniereAssist,show.na =T)
+
+```
+
+
+
+## Type d'assistance
+
+```{r eval=FALSE, include=FALSE}
+var_type_assistance = c("BanqueCerealiere",
+"VivreContreTravail",
+"ArgentContreTravail",
+"DistribVivresSoudure",
+"DistribArgentSoudure",
+"BoursesAdo",
+"BlanketFeedingChildren",
+"BlanketFeedingWomen",
+"MAMChildren",
+"MASChildren",
+"MAMPLWomen",
+"FARNcommunaut",
+"FormationRenfCapacite",
+"CashTransfert",
+"CantineScolaire"
+)
+
+#1=Oui PAM 2=Oui, Autre 3=NSP
+
+# df <-Chad_baseline_2018 %>%
+#   dplyr::select(var_type_assistance)
+
+# df <-Chad_ea_2019 %>%
+#   dplyr::select(var_type_assistance)
+
+df <-Chad_ea_2020 %>%
+  dplyr::select(var_type_assistance) # need discussion, missing
+
+# Labels:
+#  value label
+#      0   Non
+#      1   Oui
+
+df <-Chad_ea_2021 %>%
+  dplyr::select(var_type_assistance) # ok
+# Labels:
+#  value       label
+#      1         Oui
+#      2         Non
+#      3 Ne Sait Pas
+
+# df %>%
+#    mutate_at(vars(var_type_assistance), 
+#             ~recode(., '1 = Oui PAM' = '0 = truth', '2 = no' = '1 = lie'))
+
+df <-Chad_ea_2022 %>%
+  dplyr::select(var_type_assistance) #ok
+
+# Labels:
+#  value       label
+#      1         Oui
+#      2         Non
+#      3 Ne Sait Pas
+
+df <-Chad_pdm_2020 %>%
+  dplyr::select(var_type_assistance) # need questionnaire
+# Labels:
+#  value label
+#      1     1
+#      2     2
+#      3     3
+#      4     4
+#      5     5
+
+df <-Chad_pdm_2021 %>%
+  dplyr::select(var_type_assistance) # need discussion
+
+# Labels:
+#  value label
+#      0   Non
+#      1   Oui
+
+df <-Chad_pdm_2022 %>%
+  dplyr::select(var_type_assistance) #ok
+# Labels:
+#  value       label
+#      1         Oui
+#      2         Non
+#      3 Ne Sait Pas
+```
+
+
+
+
+
+# Merging all data
+
+```{r WFP Chad data}
+
+Chad_baseline_2018 <- labelled::to_factor(Chad_baseline_2018)
+Chad_ea_2019 <- labelled::to_factor(Chad_ea_2019)
+Chad_ea_2020 <- labelled::to_factor(Chad_ea_2020)
+Chad_ea_2021 <- labelled::to_factor(Chad_ea_2021)
+Chad_ea_2022 <- labelled::to_factor(Chad_ea_2022)
+Chad_pdm_2020 <- labelled::to_factor(Chad_pdm_2020)
+Chad_pdm_2021 <- labelled::to_factor(Chad_pdm_2021)
+Chad_pdm_2022 <- labelled::to_factor(Chad_pdm_2022)
+WFP_Chad<-plyr::rbind.fill(Chad_baseline_2018,
+Chad_ea_2019,
+Chad_ea_2020,
+Chad_ea_2021,
+Chad_ea_2022,
+Chad_pdm_2020,
+Chad_pdm_2021,
+Chad_pdm_2022)
+
+```
+
+
+```{r variables reorder}
+
+WFP_Chad.sub<- WFP_Chad  %>% dplyr::select(ID,adm0_ocha,ADMIN0Name,adm1_ocha,ADMIN1Name,adm2_ocha,ADMIN2Name,SURVEY,YEAR,SvyDatePDM,HHHSex ,HHHAge, HHHEdu,everything())
+
+WFP_Chad <- copy_labels(WFP_Chad.sub, WFP_Chad)
+#
+
+```
+
+```{r}
+# df = WFP_Chad %>% dplyr::select(abi_variables)
+# df <- labelled::to_factor(df)
+# 
+# haven::write_dta(df,"df.dta")
+```
+
+
+# Cleaning dirty variables
+
+
+## drop variables not needed
+
+```{r variables not needed}
+var_to_drop = c("RESPConsent",
+                "ADMIN3Name",
+                "RESPAge",
+                "RESPSex",
+                #"RelationWith_HHH",
+                "HHHMainActivity",
+                #"HHHMatrimonial",
+                "HHSourceIncome"
+)
+
+WFP_Chad <- WFP_Chad  %>% dplyr::select(-var_to_drop)
+```
+
+## Remove empty rows and/or columns
+
+```{r Remove empty rows and  columns, eval=FALSE, include=FALSE}
+WFP_Chad <- WFP_Chad  %>% janitor::remove_empty()
+
+```
+
+## Remove constant columns
+
+```{r Remove constant columns, eval=FALSE, include=FALSE}
+WFP_Chad <- WFP_Chad  %>% janitor::remove_constant()
+```
+
+
+# Data exportation 
+
+## Variables labels
+
+```{r eval=FALSE, include=FALSE}
+#var_label(penguins) <- penguins_metadata |> pull(variable_label)
+#https://www.pipinghotdata.com/posts/2022-09-13-the-case-for-variable-labels-in-r/
+# Chad_Harmonization_variables_labels <- read_excel(paste0(dir_input_data,"/Chad_Harmonization.xlsx"), 
+#     sheet = "variables_labels")
+# 
+# variable_to_labels = intersect(Chad_Harmonization_variables_labels$Variable_Name,names(WFP_Chad.sub))
+# WFP_Chad.sub_metadata <- tribble(
+#     ~variable,           ~variable_label, 
+#     Chad_Harmonization_variables_labels$Variable_Name,   Chad_Harmonization_variables_labels$Variable_Label
+# )
+# WFP_Chad.sub_labels <- WFP_Chad.sub_metadata |> 
+#   deframe()
+# 
+# df=WFP_Chad.sub |> dplyr::select(variable_to_labels)
+# WFP_Chad.sub_labelled <-  df |>
+#   set_variable_labels(!!!WFP_Chad.sub_labels)
+```
+
+
+
+
+```{r}
+#WFP_Chad <- labelled::to_factor(WFP_Chad)
+```
+
+```{r}
+haven::write_dta(WFP_Chad,"WFP_Chad.dta")
+```
+
+```{r eval=FALSE, include=FALSE}
+#WFP_Chad<- WFP_Chad %>% janitor::clean_names()
+# WFP_Chad_bis <- WFP_Chad
+# for (colname in names(WFP_Chad_bis)) {
+#   if (is.character(WFP_Chad_bis[[colname]])) {
+#     WFP_Chad_bis[[colname]] <- as.factor(WFP_Chad_bis[[colname]])
+#   }
+# }
+```
+
+
+
+
+
+```{r}
+# WFP_Chad_dictionary <- WFP_Chad |> 
+#   generate_dictionary()
+# WFP_Chad_dictionary |> 
+#   knitr::kable()
+```
+
+
+```{r}
+#devtools::install_github("pcctc/croquet")
+library(croquet)
+library(openxlsx)
+
+wb <- createWorkbook()
+add_labelled_sheet(WFP_Chad)
+saveWorkbook(wb, "WFP_Chad.xlsx",overwrite = TRUE)
+```
+
+
+
+
+```{r remove final environment variables}
+rm(list = ls())
+```
+

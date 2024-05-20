@@ -1,0 +1,8 @@
+"0",""
+"0","Mauritania_ea_2022<- read_sav(paste0(dir_input_data,""/MAURITANIA Data_Enquete_Annuelle_BMZ_Cleaned.sav""))"
+"0","var = c(22000, 72000, 73000,78500)"
+"0","Mauritania_ea_2022$DebutAssistance<-ifelse(Mauritania_ea_2022$DebutAssistance %in% var,NA,Mauritania_ea_2022$DebutAssistance)"
+"0","Mauritania_ea_2022$DebutAssistance<-Mauritania_ea_2022$today-years(Mauritania_ea_2022$DebutAssistance)"
+"0","# exportation"
+"0","haven::write_sav(Mauritania_ea_2022, paste0(dir_input_data,""/MAURITANIA Data_Enquete_Annuelle_BMZ_Cleaned.sav""))"
+"0",""

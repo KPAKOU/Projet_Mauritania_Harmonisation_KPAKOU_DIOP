@@ -1,0 +1,4 @@
+"0","chemin = setwd(getwd())"
+"0","dir_input_data = paste0(chemin,""/output_data/Mauritania"")"
+"0","dir_output_data = paste0(chemin,""/output_data/Common labels data/Mauritania"")"
+"0",""

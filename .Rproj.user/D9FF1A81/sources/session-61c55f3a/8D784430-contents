@@ -1,0 +1,125 @@
+
+---
+title: "Mauritania - Variables harmonization for all surveys and years"
+author: "DIOP Ousseynou & KPAKOU M'Mounéné"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    code_folding: show
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+  )
+```
+
+```{r packages needed}
+library(haven)
+library(labelled)
+library(tidyverse)
+library(dplyr)
+library(Hmisc)
+library(gtsummary)
+library(readxl)
+library(foreign)
+```
+
+```{r}
+rm(list = ls())
+```
+
+```{r environment settings}
+chemin = setwd(getwd())
+dir_input_data = paste0(chemin,"/input_data/Mauritania")
+dir_output_data = paste0(chemin,"/output_data/Mauritania")
+
+```
+
+```{r}
+
+```
+
+```{r read harmonization excel file}
+
+Mauritania_Harmonization_variables <- read_excel(paste0(dir_input_data,"/MRT_Harmonization.xlsx"), 
+    sheet = "variables_harmonization")
+#View(Mauritania_Harmonization_variables)
+
+Mauritania_Harmonization_description <- read_excel(paste0(dir_input_data,"/MRT_Harmonization.xlsx"), 
+    sheet = "description")
+#View(Mauritania_Harmonization_description)
+```
+
+# IMPORTANT
+On gère le cas particulier 2022 car ici c'est le nombre d'année qui a été renseigné et fera quelque traitement 
+```{r}
+
+#Mauritania_ea_2022<- read_sav(paste0(dir_input_data,"/MAURITANIA Data_Enquete_Annuelle_BMZ_Cleaned.sav"))
+#var = c(22000, 72000, 73000,78500)
+#Mauritania_ea_2022$DebutAssistance<-ifelse(Mauritania_ea_2022$DebutAssistance %in% var,NA,Mauritania_ea_2022$DebutAssistance)
+#Mauritania_ea_2022$DebutAssistance<-Mauritania_ea_2022$today-years(Mauritania_ea_2022$DebutAssistance)
+# exportation
+#haven::write_sav(Mauritania_ea_2022, paste0(dir_input_data,"/MAURITANIA Data_Enquete_Annuelle_BMZ_Cleaned.sav"))
+
+```
+
+```{r data importation}
+
+lst_data = Mauritania_Harmonization_description$Data
+lst_test = Mauritania_Harmonization_description$Name
+
+#for(i in 1:length(lst_data)) {                              # Head of for-loop
+#  assign(lst_test[i],                                   # Read and store data frames
+#         read_sav(paste0(dir_input_data,"/",lst_data[i])))
+#}
+
+for (i in 1:length(lst_data)) {
+  file_path <- paste0(dir_input_data, "/", lst_data[i])
+  
+  if (file.exists(file_path) && tolower(substr(lst_data[i], nchar(lst_data[i]) - 3,nchar(lst_data[i]))) == ".sav") {
+    assign(lst_test[i], read_sav(file_path))
+  }
+  else if (file.exists(file_path) && tolower(substr(lst_data[i], nchar(lst_data[i]) - 3,nchar(lst_data[i]))) == ".dta") {
+    assign(lst_test[i], read_dta(file_path))
+  }
+  else {
+    cat("Le fichier", file_path, "n'existe pas ou n'est pas pris en charge.\n")
+    next  
+  }
+}
+
+
+```
+
+
+```{r select and rename columns needed}
+
+for (j in 1:length(lst_test)){
+         df=  get(lst_test[j], envir = .GlobalEnv)
+          for (i in 1:nrow(Mauritania_Harmonization_variables)){
+            df[,Mauritania_Harmonization_variables$NewVariable_Name[i]]=ifelse(is.na(Mauritania_Harmonization_variables[i,lst_test[j]]),NA,df[,Mauritania_Harmonization_variables[i,lst_test[j]][[1]]])
+          }
+  df<-df %>% select(Mauritania_Harmonization_variables$NewVariable_Name)
+  write_sav(df, paste0(dir_output_data,"/",lst_test[j],".sav"))
+    
+
+}
+
+
+
+```
+
+
+```{r}
+
+
+```
+

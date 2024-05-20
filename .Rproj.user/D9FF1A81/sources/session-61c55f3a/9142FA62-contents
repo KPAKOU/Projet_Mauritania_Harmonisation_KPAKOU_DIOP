@@ -1,0 +1,601 @@
+---
+title: ''
+mainfont: Arial
+geometry: left = 2.5cm, right = 2cm, top = 2cm, bottom = 2cm
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    latex_engine: xelatex
+    highlight: zenburn
+header-includes:
+- \usepackage{tcolorbox}
+- \usepackage{float}
+- \usepackage{sectsty}
+- \usepackage{paralist}
+- \usepackage{setspace}\spacing{1.5}
+- \usepackage{fancyhdr}
+- \usepackage{lastpage}
+- \usepackage{dcolumn}
+- \usepackage{natbib}\bibliographystyle{agsm}
+- \usepackage[nottoc, numbib]{tocbibind}
+- \usepackage[toc,title,page]{appendix}
+- \usepackage{xcolor}
+- \usepackage{framed}
+- \usepackage{fontspec}
+- \fancyhead[R]{\nouppercase{\leftmark}}
+- \pagestyle{fancy}
+- \renewcommand\footrulewidth{1pt}
+- "\\fancyfoot[L]{\\textcolor{blue}{\\textbf{TP1 - Logiciel statistique R}}}"
+- \fancyfoot[C]{\textbf{Page \thepage/\pageref{LastPage}}}
+- \fancyfoot[R]{\textcolor{orange}{KPAKOU M'Mounéné ISEP2}}
+- \setlength{\headheight}{15pt}
+fontsize: 12pt
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(tinytex.verbose = TRUE)
+```
+
+\allsectionsfont{\centering}
+\subsectionfont{\raggedright}
+\subsubsectionfont{\raggedright}
+\thispagestyle{empty}
+
+\begin{tcolorbox}[colback=white,colframe=blue]
+
+\begin{centering}
+
+\vspace{0cm}
+
+```{r ANSD_logo, echo=F, out.width="20%"}
+knitr::include_graphics("ansd.png")
+```
+\vspace{0cm}
+
+\Large
+----------------------------------------------------------------------\newline
+{\fontsize{16pt}{14pt}\textbf {AGENCE NATIONALE DE LA STATISTIQUE ET DE LA DEMOGRAPHIE}}
+----------------------------------------------------------------------\newline 
+\vspace{0cm}
+```{r ensae_logo, echo=F, out.width="16%"}
+knitr::include_graphics("ensae.jpg")
+```
+\vspace{0cm}
+
+\Large
+{\fontsize{14pt}{14pt}\bf ECOLE NATIONALE DE LA STATISTIQUE ET DE L'ANALYSE ECONOMIQUE PIERRE NDIAYE}
+
+\vspace{0.5cm}
+
+\Large
+
+\doublespacing
+\begin{center}
+  \setlength{\fboxrule}{1pt} % Épaisseur de la bordure
+  \setlength{\fboxsep}{9pt} % Espace entre la bordure et le contenu
+  \colorbox{yellow}{ % Couleur de fond
+    \begin{minipage}{0.8\textwidth}
+ {\bf TP 1 - Logiciel statistique R}
+    \end{minipage}
+  }
+\end{center}
+
+\vspace{0.3cm}
+
+\normalsize
+\singlespacing
+Par
+
+\vspace{0.4 cm}
+
+\Large
+
+{\bf KPAKOU M'Mounéné ISEP3}
+
+\vspace{0.5 cm}
+Chargé du cours:
+\vspace{0.5 cm}
+
+\Large
+
+{\bf Mr. Aboubacar HEMA}
+
+\vspace{0.4 cm}
+{\fontsize{12pt}{14pt}\bf Ingénieur des Travaux Statistiques}
+
+\vspace{0.5cm}
+
+\normalsize
+
+\end{centering}
+\end{tcolorbox}
+\newpage
+
+
+
+
+
+# 0.Libraries nécessaires
+
+```{r }
+rm(list = ls())
+```
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(readxl)
+library(sjPlot)#création de graphiques descriptifs
+library(dplyr)
+library(gtsummary)
+library(kableExtra)
+library(sf)  # objet spatial
+library(ggspatial) #representation spatial
+```
+
+# 1.Préparation des données
+## \textcolor{blue}{\textbf{1.2 Importation et mise en forme}}
+### *a.Repertoire de travail*
+
+```{r}
+setwd(getwd())
+```
+### *b.Importation*
+```{r}
+projet <- read_xlsx("Base_Projet.xlsx")
+#View(projet)
+```
+#### **Nombre de lignes et colonnes**
+```{r message=FALSE,warning=FALSE,comment=""}
+dim(projet)
+```
+La base de données contient 250 Petites et Moyennes entreprises et 33 variables
+
+#### **Verification de l'existence de NA pour la variable key**
+```{r message=FALSE,warning=FALSE,comment=""}
+sum(is.na(projet$key))
+```
+Il n'y a pas de valeurs manquantes pour la variable key c'est à dire qu'il n' y a pas d'entreprises non identifiables à travers la variable key
+
+## \textcolor{blue}{\textbf{1.3 Création de variables}}
+### *a.Renames des variables* 
+```{r message=FALSE,warning=FALSE,comment=""}
+projet <- projet %>% rename(!!!setNames(c("q1","q2","q23"),
+                                        c("region","departement","sexe")))
+```
+
+### *b.Création de la variable sexe_2*
+```{r message=FALSE,warning=FALSE,comment=""}
+projet <- projet %>% mutate(sexe_2= ifelse(sexe=="Femme",1,0))
+```
+
+### *c.Création d'un dataframe langues*
+
+```{r message=FALSE,warning=FALSE,comment=""}
+#selection des variables commençant par q24a_
+langues_variables = projet %>% 
+  dplyr::select(gtsummary::starts_with("q24a_")) %>% names()
+#création du dataframe
+langues <- projet %>%
+  select(key, all_of(langues_variables))
+
+```
+\newpage
+### *d. creation de la variable*
+
+```{r message=FALSE,warning=FALSE,comment=""}
+#  nouvelle variable parle qui représente la somme des langues parlées
+langues <- langues %>%
+  mutate(parle = rowSums(select(., starts_with("q24a_"))))
+```
+
+### *e. selection des variables key et parle*
+
+```{r message=FALSE,warning=FALSE,comment=""}
+# Sélection  des variables key et parle dans le data.frame langues
+langues <- select(langues, key, parle)
+
+# Fusion des data.frames projet et langues
+merge_data <- merge(projet, langues, by = "key")
+```
+
+# 2.Analyses descriptives 
+ *Fonction pour les statistiques descriptives univariées*
+
+```{r }
+
+# Fonction pour les statistiques descriptives univariées
+univarie <- function(data, variable) {
+  if (is.numeric(var)) {
+    summary(data[[variable]])#statistiques
+    hist(var, main = paste("Histogramme de", variable))## Histogramme
+  } else if (is.factor(data[[variable]])) {
+  data %>%  tbl_summary(variable) %>% as_gt()  # Statistiques descriptives
+    data %>% plot_frq(variable,coord.flip =T,show.na = T)
+  } else if (is.character(data[[variable]])) {
+    data %>% tbl_summary(include=variable)%>%as_gt()# Statistiques
+    data %>%plot_frq(variable,coord.flip =T,
+               title=paste("Répartition des PME selon", variable),show.na = T)
+  }
+}
+```
+\newpage
+*Fonction pour les statistiques descriptive bivariée*
+
+```{r}
+bivariee <- function(data, x, y) {
+  # Déterminer les types des variables
+  type_x <- class(data[[x]])
+  type_y <- class(data[[y]])
+  # Cas Quantitatif & Quantitatif
+  if (type_x == "numeric" && type_y == "numeric") {
+    summary(data[[x]] ~ data[[y]]) # Statistiques descriptives
+    plot(data[[x]], data[[y]], main = paste(x, "vs", y))#Graphique
+    cor.test(data[[x]], data[[y]])
+  }
+  # Cas Quantitatif & Qualitatif
+  if (type_x == "numeric" && type_y == "character" || type_y == "factor") {
+    tapply(data[[x]], data[[y]], summary) # Statistiques descriptives
+    boxplot(data[[x]] ~ data[[y]])    # Graphique
+  }
+  # Cas Qualitatif & Qualitatif
+  if (type_x == "character" || type_x == "factor" && type_y == "character" || type_y == "factor") {
+    tbl <- tbl_summary(data, include = c(x,y), by=x) #Statistiques
+    tbl_pdf<- tbl %>% as_kable_extra()
+  }
+}
+```
+
+Nous allons renommer certains variables pour que leurs noms soit plus explicites
+
+```{r message=FALSE,warning=FALSE,comment=""}
+merge_data <- 
+  merge_data %>% 
+  rename(!!!setNames(c("q12","q25","q81","filiere_1","filiere_2",
+                       "filiere_3","filiere_4"), c("Statut_juridique",
+                                                   "Niveau_instruction","Proprietaire"                                                  ,"Arachide","Anacarde","Mangue","Riz")))
+
+```
+\newpage
+## \textcolor{blue}{\textbf{2.1 Statistiques descriptives univariées}}
+
+
+ La répartion des PME suivant:
+
+### *a.sexe*
+
+
+```{r  message=FALSE,warning=FALSE,comment=""}
+univarie(data = merge_data, variable = "sexe")
+```
+
+```{r echo=FALSE ,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = "sexe") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 1: répartition du sexe") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+
+
+
+Sur un total de 250 responsables, 191 sont des femmes, représentant ainsi 76 % du total, tandis que 59 sont des hommes, soit 24 % du total. Cette répartition dénote une prépondérance marquée des femmes parmi les responsables ou dirigeants de PME inclus dans notre base.
+
+### *b.niveau d’instruction*
+
+
+```{r message=FALSE,warning=FALSE}
+univarie(data = merge_data, variable = "Niveau_instruction")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = "Niveau_instruction") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 2: répartition du Niveau d'instruction") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+Le tableau fourni résume la répartition du niveau d'instruction des responsables ou dirigeants des PME. Sur un total de 250 responsables, 79 d'entre eux (soit 32 %) n'ont aucun niveau d'instruction spécifié, 56 (22 %) ont un niveau primaire, 74 (30 %) ont un niveau secondaire, et 41 (16 %) ont un niveau supérieur. Cette répartition souligne une diversité de niveaux d'instruction parmi les responsables ou dirigeants de PME inclus dans l'échantillon.
+
+### *c.statut juridique*
+
+```{r message=FALSE,warning=FALSE}
+univarie(data = merge_data, variable = "Statut_juridique")
+```
+\newpage
+```{r echo=FALSE,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = "Statut_juridique") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 3: répartition du Statut_juridique") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+Sur un total de 250 responsables, il apparaît que les Groupements d'Intérêt Économique (GIE) représentent la catégorie prédominante avec 179 responsables (72 %), suivis par les structures informelles comptant 38 responsables (15 %). Les autres statuts juridiques tels que les Sociétés Anonymes (SA), les Sociétés à Responsabilité Limitée (SARL), et les Sociétés Unipersonnelles à Responsabilité Limitée (SUARL) sont moins fréquents, représentant respectivement 2,8 %, 5,2 %, et 2,8 % des responsables. Seules six personnes (2,4 %) sont associées dans des associations. 
+\newpage
+###  *d.propriétaire/locataire*
+
+```{r message=FALSE,warning=FALSE}
+univarie(data = merge_data, variable = "Proprietaire")
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = "Proprietaire") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 4: répartition du Proprietaire/locataire") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+
+Le tableau fourni résume la répartition du statut de locataire ou de propriétaire parmi les responsables ou dirigeants des PME. Sur un total de 250 responsables, il apparaît que la grande majorité, soit 226 responsables (90 %), sont propriétaires, tandis que seulement 24 responsables (9,6 %) sont locataires. Cette répartition souligne une prévalence significative des propriétaires parmi les responsables de PME dans l'échantillon étudié.
+
+## \textcolor{blue}{\textbf{2.2 Statistiques descriptives bivariées}}
+
+### *a.Le statut juridique et le sexe*
+
+
+```{r message=FALSE,warning=FALSE}
+bivariee(merge_data, "sexe", "Statut_juridique")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = c("sexe", "Statut_juridique"),by="sexe") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 5: répartition selon le statut juridique et le sexe") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+La répartition des PME selon le statut juridique et le sexe révèle des tendances significatives. Parmi les 191 PME dirigées par des femmes, la majorité opèrent sous forme de Groupements d'Intérêt Économique (GIE), représentant 78 % de cet échantillon, suivies par les structures informelles avec 17 %. Les autres statuts juridiques tels que les Associations, les SARL et les SUARL sont moins fréquents, chacun représentant moins de 3 % des PME dirigées par des femmes. En revanche, parmi les 59 PME dirigées par des hommes, la répartition est plus diversifiée : 51 % sont des GIE, 10 % sont des structures informelles ou des SA, tandis que les SARL et les SUARL représentent respectivement 19 % et 5 %.
+\newpage
+
+###	*b.Le niveau d’instruction et le sexe*
+
+
+```{r message=FALSE,warning=FALSE}
+bivariee(merge_data, "sexe", "Niveau_instruction")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = c("sexe", "Niveau_instruction"),by="sexe") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 6: répartition selon le niveau d’instruction et le sexe") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+
+
+Parmi les 191 PME dirigées par des femmes, la majorité des responsables n'ont aucun niveau d'instruction spécifié, représentant 37 % de l'échantillon, suivis par ceux ayant un niveau secondaire (29 %). Les niveaux primaire et supérieur sont également représentés, avec respectivement 25 % et 8,9 % des responsables. En revanche, parmi les 59 PME dirigées par des hommes, une tendance différente se dessine : une plus grande proportion de responsables possèdent un niveau d'instruction supérieur (41 %), suivie par ceux ayant un niveau secondaire (31 %). Les proportions de responsables sans niveau d'instruction ou avec un niveau primaire sont plus faibles chez les hommes, représentant respectivement 15 % et 14 %. Ces différences dans la répartition selon le niveau d'instruction entre les sexes suggèrent des dynamiques distinctes en matière d'accès à l'éducation et d'entrepreneuriat,
+
+\newpage
+
+###	*c. Propriétaire/locataire suivant le sexe*
+
+```{r message=FALSE,warning=FALSE}
+bivariee(merge_data, "sexe", "Proprietaire")
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,comment=""}
+merge_data %>%
+  # create a gtsummary table
+  tbl_summary(include = c("sexe", "Proprietaire"),by="sexe") %>%
+  # convert from gtsummary object to gt object
+  as_gt() %>%
+  # modify with gt functions
+  gt::tab_header("Table 7: répartition 	Propriétaire/locataire suivant le sexe") %>% 
+  gt::tab_options(
+    table.font.size = "small",
+    data_row.padding = gt::px(1))
+```
+
+L'analyse de la répartition des PME selon le statut de locataire ou de propriétaire des responsables révèle des différences notables entre les sexes. Parmi les 191 PME dirigées par des femmes, la grande majorité des responsables sont propriétaires de leur local, représentant 92 % de l'échantillon, tandis que seulement 8,4 % sont des locataires. En revanche, parmi les 59 PME dirigées par des hommes, bien que la majorité soit également propriétaire (86 %), une proportion légèrement plus élevée de responsables (14 %) sont des locataires.
+
+## \textcolor{blue}{\textbf{2.3 Autres analyses}}
+
+### *a. Nombre d'entreprises par filière*
+
+```{r message=FALSE,warning=FALSE,comment=""}
+
+effectifs_filiere <- colSums(merge_data[, c("Arachide", "Anacarde", "Mangue", "Riz")])
+effectifs_filiere
+
+```
+Nous avons 108 entreprises PME sont recensées dans la filière *arachide* , 61 dans la filière *anacarde*, 89 dans la filière *mangue*, et 92 dans la filière *Riz.*
+
+###  *b. Repartition des PME par region*
+```{r message=FALSE,warning=FALSE,comment=""}
+merge_data %>% plot_frq(region,coord.flip =T,title=" Répartition des PME par region",show.na = T)
+```
+Nous observons que 20,4% des entreprises enquetés sont dans la region de thiès suivi de la région de Ziguichor avec 20%.
+
+\newpage
+
+# 3.Cartographie
+
+Transformons d'abord nos données en données spatiales
+
+```{r}
+projet_map <- st_as_sf(merge_data, coords = c("gps_menlongitude", "gps_menlatitude"),crs = 4326)
+```
+
+### *a.Code ayant permet de faire sortir la carte ci dessous*
+
+```{r}
+palette_couleurs <- c("blue", "red")
+# Creation de la carte
+map <- ggplot() +
+  geom_sf(data = projet_map, aes(color = sexe)) +  #  "sexe" pour la couleur
+  scale_color_manual(values = palette_couleurs) +  
+  theme_minimal()
+# Affichage la carte
+map
+```
+
+### *b. Carte avec echelle, titre des axes, legende*
+```{r message=FALSE,warning=FALSE,comment=""}
+map <- ggplot() +
+  geom_sf(data = projet_map, aes(color = sexe)) +  
+  scale_color_manual(values = palette_couleurs) +  
+  labs(title = "Répartition de la variable sexe",  # Titre de la carte
+       x = "Longitude", y = "Latitude",  # Axes
+       color = "Sexe") +  
+  theme_minimal() +  # Thème minimal
+  theme(legend.position = "right",  # Position de la légende
+    axis.text = element_text(size = 10),  #Taille du texte des axes
+    axis.title = element_text(size = 12, face = "bold"),# Style du texte des axes
+    plot.title = element_text(size = 14, face = "bold"),# Style du texte du titre
+        legend.text = element_text(size = 10),  # Taille du texte de la légende
+    legend.title = element_text(size = 12, face = "bold"),#  la légende
+        plot.caption = element_text(size = 10)) +  # Légende de l'échelle
+  annotation_scale(location = "br", width_hint = 0.2)+
+annotation_north_arrow(location = "tl", which_north = "true",
+style = north_arrow_fancy_orienteering)+
+  theme(
+    plot.background = element_rect(color = "black", fill = NA),# Définir la couleur du cadre
+    panel.grid.major = element_blank(), # Supprimer les lignes de grille principales
+    panel.grid.minor = element_blank() # Supprimer les lignes de grille secondaires
+  )
+# Afficher la carte
+map
+```
+
+
+```{r message=FALSE,warning=FALSE,comment=""}
+# Importation des données géographiques pour chaque niveau administratif du Sénégal
+SEN_adm0 <- st_read("gadm41_SEN_shp/gadm41_SEN_0.shp")
+SEN_adm1 <- st_read("gadm41_SEN_shp/gadm41_SEN_1.shp")
+SEN_adm2 <- st_read("gadm41_SEN_shp/gadm41_SEN_2.shp")
+SEN_adm3 <- st_read("gadm41_SEN_shp/gadm41_SEN_3.shp")
+# Affichage  des différentes cartes suivant les niveaux administratifs
+
+```
+\newpage
+*Carte du Sénégal (niveau 0)*
+```{r message=FALSE,warning=FALSE,comment=""}
+ggplot() +
+  geom_sf(data = SEN_adm0) +
+  labs(title = "Carte du Sénégal (niveau 0)")+
+  annotation_scale(location = "br", width_hint = 0.2)+
+annotation_north_arrow(location = "tl", which_north = "true",
+style = north_arrow_fancy_orienteering)
+
+```
+\newpage
+*Carte du Sénégal (niveau 1 - Régions)*
+```{r message=FALSE,warning=FALSE,comment=""}
+ggplot() +
+  geom_sf(data = SEN_adm1) +
+  labs(title = "Carte du Sénégal (niveau 1 - Régions)")+
+  geom_sf_label(data = SEN_adm1, aes(label = NAME_1), color = "black", size = 3, check_overlap = TRUE) +
+  annotation_scale(location = "br", width_hint = 0.2)+
+annotation_north_arrow(location = "tl", which_north = "true",
+style = north_arrow_fancy_orienteering)
+
+```
+
+\newpage
+*Carte du Sénégal (niveau 2 - Départements)*
+```{r message=FALSE,warning=FALSE,comment=""}
+ggplot() +
+  geom_sf(data = SEN_adm2) +
+  labs(title = "Carte du Sénégal (niveau 2 - Départements)")+
+  annotation_scale(location = "br", width_hint = 0.2)+
+annotation_north_arrow(location = "tl", which_north = "true",
+style = north_arrow_fancy_orienteering)
+```
+
+\newpage
+*Carte du Sénégal (niveau 3 - Communes)*
+```{r message=FALSE,warning=FALSE,comment=""}
+ggplot() +
+  geom_sf(data = SEN_adm3) +
+  labs(title = "Carte du Sénégal (niveau 3 - Communes)")+
+  annotation_scale(location = "br", width_hint = 0.2)+
+annotation_north_arrow(location = "tl", which_north = "true",
+style = north_arrow_fancy_orienteering)
+```
+
+\newpage
+### *C.une réprésentation spatiale des PME suivant le sexe à l'échelle regionale*
+
+```{r message=FALSE,warning=FALSE,comment=""}
+# Nous devons joindre les données de PME avec les données géographiques regionales
+pme_joined <- st_join(projet_map, SEN_adm1)
+# Affichage des PME sur la carte
+ggplot() +
+  geom_sf(data = SEN_adm1) +# Affichage des regions
+  geom_sf(data = pme_joined, aes(color = sexe)) +# Affichage des PME avec une couleur différente pour chaque sexe
+  scale_color_manual(values = c("blue", "red")) +# Définissons les couleurs pour chaque sexe
+  labs(title = "Répartition spatiale des PME suivant le sexe", color = "Sexe") +  # Titre et légende
+  theme_minimal()+ #Thème minimal
+  annotation_scale(location = "br", width_hint = 0.2)+
+annotation_north_arrow(location = "bl", which_north = "true",
+style = north_arrow_fancy_orienteering)+# Echelle
+  theme(plot.background = element_rect(color = "black", fill = NA),  # Définir la couleur du cadre
+        panel.grid.major = element_blank(),  # Supprimer les lignes de grille principales
+        panel.grid.minor = element_blank()  # Supprimer les lignes de grille secondaires
+  )
+```
+\newpage
+
+*Réprésentation spatiale des PME suivant le niveau d’instruction à l'échelle regionale*
+
+```{r message=FALSE,warning=FALSE,comment=""}
+# Nous devons joindre les données de PME avec les données géographiques regionales
+pme_joined <- st_join(projet_map, SEN_adm1)
+# Affichage des PME sur la carte
+ggplot() +
+  geom_sf(data = SEN_adm1) +  # Affichage des regions
+  geom_sf(data = pme_joined, aes(color = Niveau_instruction)) +  # Affichage des PME avec une couleur différente pour chaque sexe
+  scale_color_manual(values = c("blue", "green", "red", "orange")) +  # Définissons les couleurs pour chaque Niveau d'instruction
+  labs(title = "Répartition spatiale des PME suivant le niveau d'instruction", color = "Niveau_instruction") +  # Titre et légende
+  theme_minimal() + # Thème minimal
+  annotation_scale(location = "br", width_hint = 0.2)+# Echelle
+  theme(plot.background = element_rect(color = "black", fill = NA),  # Définir la couleur du cadre
+        panel.grid.major = element_blank(),  # Supprimer les lignes de grille principales
+        panel.grid.minor = element_blank()  # Supprimer les lignes de grille secondaires
+  )+
+annotation_north_arrow(location = "tl", which_north = "true",
+style = north_arrow_fancy_orienteering)
+```
+
+## Analyse spatiale
+On constate que une abscence totale de PME dans certaines regions notamment:
+Louga , Matam, Kedougou, Tambamcounda. Peut être que ces régions n'ont pas été enquetés
+
+Dans les region de Kaffrine et Koalack toute les PME sont dirigés par les 
+responsables de sexe Feminim et dans la region de thiès la plupart sont dirigés
+par les femmes également.
+
+
+

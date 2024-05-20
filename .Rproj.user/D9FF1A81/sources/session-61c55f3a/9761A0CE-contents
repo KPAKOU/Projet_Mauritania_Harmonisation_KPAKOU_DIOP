@@ -1,0 +1,79 @@
+
+
+
+ISO_2018<-haven::read_sav("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/Baseline_3A_FFA_Menage_Nov_2018.sav")
+ISO_2019<-haven::read_dta("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/4.2 MRT_data.dta")
+ISO_2020_pdm<-haven::read_sav("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/4.3 MRT_data_VF JUILLET 2020.sav")
+ISO_2020_ea<-haven::read_dta("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/MRT En Annuelle 2020.dta")
+ISO_2021_pdm<-haven::read_sav("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/Mauritanie Decembre 2021 Enquête annuelle 2021 data.sav")
+ISO_2021_ea<-haven::read_sav("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/BD_Menage_Enquête_Suivi_Résilience_Juiilet_21_apurée.sav")
+ISO_2022_ea<-haven::read_sav("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/MAURITANIA Data_Enquete_Annuelle_BMZ_Cleaned.sav")
+View(ISO_2018)
+View(ISO_2019)
+View(ISO_2020_ea)
+View(ISO_2020_pdm)
+View(ISO_2021_ea)
+View(ISO_2021_pdm)
+View(ISO_2022_ea)
+
+ISO_2022_ea$GraviteImpactRevenus <- as.numeric(ISO_2022_ea$GraviteImpactRevenus)
+GRA = c("GraviteImpactRevenus","GraviteImpactSAN")
+ISO_2022_ea <- ISO_2022_ea %>%
+  mutate_at(GRA, as.numeric)
+ISO_2022_ea <- ISO_2022_ea %>% 
+  dplyr::mutate(across(GRA,
+                       ~recode(.,`1`=1L,`2`=2L,`3`=3L,`4`=4L,`888`=888L,`8888`=8888L,.default=NA_integer_             )
+  )
+  )
+#Remplacer la date non valide de 2020
+ISO_2020_pdm$benef_3A <- as.Date(ifelse(as.Date(ISO_2020_pdm$benef_3A) == "2107-07-29", as.Date("2007-07-29"), as.Date(ISO_2020_pdm$benef_3A)),origin = "1970-01-01")
+haven::write_sav(ISO_2020_pdm, "E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/4.3 MRT_data_VF JUILLET 2020.sav")
+####ea_2020
+ISO_2020_ea$benef_3A <- as.Date(ifelse(as.Date(ISO_2020_ea$benef_3A) == "2108-12-31", as.Date("2008-12-31"), as.Date(ISO_2020_ea$benef_3A)),origin = "1970-01-01")
+haven::write_dta(ISO_2020_ea,"E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/MRT En Annuelle 2020.dta")
+##pdm_2021
+ISO_2021_pdm$DebutAssistance <- as.Date(ifelse(as.Date(ISO_2021_pdm$DebutAssistance) == "1986-12-01", as.Date("2000-12-01"), as.Date(ISO_2021_pdm$DebutAssistance)),origin = "1970-01-01")
+haven::write_sav(ISO_2021_pdm,"E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/Mauritanie Decembre 2021 Enquête annuelle 2021 data.sav")
+
+
+var2 = c(22000, 72000, 73000,78500)
+ISO_2022_ea$DebutAssistance<-ifelse(ISO_2022_ea$DebutAssistance %in% var2,NA,ISO_2022_ea$DebutAssistance)
+
+ISO_2022_ea$DebutAssistance<-ISO_2022_ea$today-years(ISO_2022_ea$DebutAssistance)
+
+library(dplyr)
+ISO_2020_pdm %>% sjPlot::view_df()
+View(ISO_2019)
+
+ISO_Niger<-haven::read_sav("E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/TP1/CHAD EN 2022.sav")
+library(dplyr)
+ISO_2020_ea %>% sjPlot::view_df()
+View(ISO_Niger)
+
+ISO_2020_ea$HHSize<-ISO_2020_ea$CCM_9a+ISO_2020_ea$CCM_9b+ISO_2020_ea$CCM_9c
+haven::write_dta(ISO_2020_ea,"E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/MRT En Annuelle 2020.dta")
+
+ISO_2022_ea <- ISO_2022_ea %>%
+  mutate(rCSIMealAdult  = ifelse(rCSIMealAdult  == 3.001,3 , rCSIMealAdult ))
+haven::write_sav(ISO_2022_ea, "E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/MAURITANIA Data_Enquete_Annuelle_BMZ_Cleaned.sav")
+#calcul nombre de migrants
+ISO_2021_ea <- ISO_2021_ea %>%
+  mutate(NbMigrants  = ifelse(NbMigrants  == 800,8 , NbMigrants ))
+haven::write_sav(ISO_2021_ea, "E:/KPAKOU/KPAM ISEP 3/SEMESTRE 5/Statistique exploratoire spatiale/Projet 1/input_data/Mauritania/BD_Menage_Enquête_Suivi_Résilience_Juiilet_21_apurée.sav")
+library(labelled)
+# Extraire les noms des variables
+noms_variables <- names(ISO_2021_pdm)
+
+# Initialiser un vecteur vide pour stocker les labels
+labels <- vector("character", length(noms_variables))
+
+# Parcourir les noms des variables et extraire les labels correspondants
+for (i in 1:length(noms_variables)) {
+  labels[i] <- attributes(ISO_2021_pdm[[noms_variables[i]]])["label"]
+}
+
+# Créer un nouveau data frame avec les noms et labels des variables
+data_labels <- data.frame(
+  nom_variable = noms_variables,
+  label = labels
+)

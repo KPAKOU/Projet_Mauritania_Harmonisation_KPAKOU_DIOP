@@ -1,0 +1,8 @@
+"0","#Mauritania_baseline_2018 <- Mauritania_baseline_2018  %>% filter(RESPConsent == 1)"
+"0","#Mauritania_ea_2019 <- Mauritania_ea_2019  %>% filter(RESPConsent == ""Oui"")"
+"0","#Mauritania_ea_2020 <- Mauritania_ea_2020  %>% filter(RESPConsent == 1)"
+"0","#Mauritania_ea_2021 <- Mauritania_ea_2021  %>% filter(RESPConsent ==1)"
+"0","#Mauritania_pdm_2020 <- Mauritania_pdm_2020  %>% filter(RESPConsent =="""")"
+"0","#Mauritania_pdm_2021 <- Mauritania_pdm_2021  %>% filter(RESPConsent == 1)"
+"0","#Mauritania_ea_2022 <- Mauritania_ea_2022 %>% filter(RESPConsent == 2)"
+"0",""

@@ -1,0 +1,8 @@
+"0","Mauritania_baseline_2018 <- Mauritania_baseline_2018 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0","Mauritania_ea_2019 <- Mauritania_ea_2019 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0","Mauritania_ea_2020 <- Mauritania_ea_2020 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0","Mauritania_ea_2021 <- Mauritania_ea_2021 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0","Mauritania_ea_2022 <- Mauritania_ea_2022 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0","Mauritania_pdm_2020 <- Mauritania_pdm_2020 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0","Mauritania_pdm_2021 <- Mauritania_pdm_2021 %>% dplyr::distinct() %>% dplyr::filter(!is.na(ADMIN1Name))"
+"0",""
